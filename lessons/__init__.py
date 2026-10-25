@@ -1,0 +1,403 @@
+"""Loader for the lesson files in `lessons/`.
+
+Each exercise is one Markdown file with a small frontmatter block and a few
+XML-ish section tags. This module turns those files into plain dataclasses;
+nothing here knows about Textual, so it can be tested on its own.
+
+    from lessons import load_course
+    course = load_course("lessons")
+    course[0].levels[0].title   # "Setting Up"
+
+The format is documented in `lessons/README.md`.
+"""
+
+from __future__ import annotations
+
+import random
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+
+# --------------------------------------------------------------------------- #
+#  Data model
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class Block:
+    """One piece of a lesson body: a paragraph, bullet, code box or sprite."""
+
+    kind: str                 # "p" | "li" | "code" | "out" | "sprites"
+    text: str = ""
+    lang: str = ""
+
+
+@dataclass
+class Level:
+    order: int
+    exercise: int
+    title: str
+    xp: int
+    module: int
+    slug: str
+    learn: list[Block] = field(default_factory=list)
+    instructions: list[Block] = field(default_factory=list)
+    hint: str = ""
+    solution: str = ""
+    expect: str | None = None
+    start: str = "# Write code below 💖\n\n"
+
+    _vars_src: str = ""
+    """Raw `<vars>` body, executed on every roll()."""
+
+    _raw: dict = field(default_factory=dict)
+    """Templates captured at parse time, substituted on every roll()."""
+
+    vars: dict = field(default_factory=dict)
+    """Current randomised values, available to templates as {{name}}."""
+
+    def roll(self, seed: int | None = None) -> None:
+        """Draw new random values and re-render every template.
+
+        Called when the level is opened, so a replay gets fresh numbers and
+        the learner cannot memorise one fixed answer.
+        """
+        self.vars = _run_vars(self._vars_src, seed)
+        self.learn = [_render_block(b, self.vars) for b in self._raw["learn"]]
+        self.instructions = [
+            _render_block(b, self.vars) for b in self._raw["instructions"]
+        ]
+        self.hint = _fill(self._raw["hint"], self.vars)
+        # the solution is Python, so lists stay literals
+        self.solution = _fill(self._raw["solution"], self.vars, literal=True)
+        self.expect = _fill(self._raw["expect"], self.vars) or None
+
+
+@dataclass
+class CourseModule:
+    number: int
+    title: str
+    blurb: str
+    levels: list[Level] = field(default_factory=list)
+
+
+# --------------------------------------------------------------------------- #
+#  Parsing
+# --------------------------------------------------------------------------- #
+
+_FRONT = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.S)
+_SECTION = re.compile(r"<(learn|instructions|help|vars)>(.*?)</\1>", re.S)
+_TAG = re.compile(r"<(hint|solution)>(.*?)</\1>", re.S)
+_VAR_REF = re.compile(r"\{\{(.+?)\}\}", re.S)
+
+
+def _parse_front(text: str) -> dict[str, str]:
+    """Parse `key: value` lines, including `key: |` block scalars."""
+    meta: dict[str, str] = {}
+    lines = text.splitlines()
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        stripped = line.strip()
+        index += 1
+        if not stripped or stripped.startswith("#") or ":" not in stripped:
+            continue
+        key, _, value = stripped.partition(":")
+        key, value = key.strip().lower(), value.strip()
+        if value == "|":
+            # block scalar: every following line indented deeper belongs here
+            body: list[str] = []
+            while index < len(lines):
+                nxt = lines[index]
+                if nxt.strip() and not nxt.startswith((" ", "\t")):
+                    break
+                body.append(nxt)
+                index += 1
+            while body and not body[0].strip():
+                body.pop(0)
+            while body and not body[-1].strip():
+                body.pop()
+            indent = min(
+                (len(l) - len(l.lstrip()) for l in body if l.strip()), default=0
+            )
+            meta[key] = "\n".join(l[indent:] for l in body)
+        else:
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                value = value[1:-1]
+            meta[key] = value
+    return meta
+
+
+def _blocks(body: str) -> list[Block]:
+    """Turn a section body into displayable blocks.
+
+    Fenced code is pulled out first so its contents are never mistaken for
+    prose or list items.
+    """
+    blocks: list[Block] = []
+    body = body.strip()
+    if not body:
+        return blocks
+
+    parts: list[tuple[str, str, str]] = []
+    cursor = 0
+    pattern = re.compile(r"```(\w*)\n(.*?)```|<sprites>(.*?)</sprites>", re.S)
+    for match in pattern.finditer(body):
+        if match.start() > cursor:
+            parts.append(("prose", "", body[cursor:match.start()]))
+        if match.group(3) is not None:
+            parts.append(("sprites", "", match.group(3)))
+        else:
+            parts.append(("code", match.group(1) or "python", match.group(2)))
+        cursor = match.end()
+    if cursor < len(body):
+        parts.append(("prose", "", body[cursor:]))
+
+    for kind, lang, payload in parts:
+        if kind == "sprites":
+            blocks.append(Block("sprites", payload.strip()))
+            continue
+        if kind == "code":
+            blocks.append(
+                Block("out" if lang == "output" else "code",
+                      payload.rstrip("\n"), lang)
+            )
+            continue
+        for chunk in re.split(r"\n\s*\n", payload):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            lines = chunk.splitlines()
+            if all(line.lstrip().startswith(("- ", "* ")) for line in lines):
+                for line in lines:
+                    blocks.append(Block("li", line.lstrip()[2:].strip()))
+            else:
+                blocks.append(Block("p", " ".join(l.strip() for l in lines)))
+    return blocks
+
+
+def _dedent(text: str) -> str:
+    """Strip the common leading indent so solutions keep their own layout."""
+    lines = text.strip("\n").splitlines()
+    if not lines:
+        return ""
+    indents = [len(l) - len(l.lstrip()) for l in lines if l.strip()]
+    cut = min(indents) if indents else 0
+    return "\n".join(l[cut:] for l in lines).strip("\n")
+
+
+def parse_level(path: Path) -> Level:
+    raw = path.read_text(encoding="utf-8")
+    front = _FRONT.search(raw)
+    if front is None:
+        raise ValueError(f"{path.name}: missing --- frontmatter ---")
+    meta = _parse_front(front.group(1))
+    body = raw[front.end():]
+
+    for key in ("order", "title", "xp", "module"):
+        if key not in meta:
+            raise ValueError(f"{path.name}: frontmatter is missing '{key}'")
+
+    learn: list[Block] = []
+    instructions: list[Block] = []
+    hint = solution = ""
+    vars_src = ""
+
+    vars_src = meta.get("vars", "")
+
+    for name, section in _SECTION.findall(body):
+        if name == "learn":
+            learn = _blocks(section)
+        elif name == "instructions":
+            instructions = _blocks(section)
+        elif name == "vars":
+            vars_src = _dedent(section)
+        else:
+            tags = dict(_TAG.findall(section))
+            hint = tags.get("hint", "").strip()
+            solution = _dedent(tags.get("solution", ""))
+
+    level = Level(
+        order=int(meta["order"]),
+        exercise=int(meta.get("exercise", meta["order"])),
+        title=meta["title"],
+        xp=int(meta["xp"]),
+        module=int(meta["module"]),
+        slug=path.stem,
+        start=meta.get("start", "# Write code below 💖\n\n"),
+        _vars_src=vars_src,
+        _raw={
+            "learn": learn,
+            "instructions": instructions,
+            "hint": hint,
+            "solution": solution,
+            "expect": meta.get("expect", ""),
+        },
+    )
+    level.roll()
+    return level
+
+
+# --------------------------------------------------------------------------- #
+#  Random values and templates
+# --------------------------------------------------------------------------- #
+
+_VAR_NAMESPACE = {
+    "randint": random.randint,
+    "randrange": random.randrange,
+    "choice": random.choice,
+    "choices": random.choices,
+    "uniform": random.uniform,
+    "sample": random.sample,
+    "shuffle": random.shuffle,
+    "random": random.random,
+    "round": round,
+    "abs": abs,
+    "min": min,
+    "max": max,
+    "sum": sum,
+    "len": len,
+    "sorted": sorted,
+    "str": str,
+    "int": int,
+    "float": float,
+    "list": list,
+    "range": range,
+    "enumerate": enumerate,
+    "zip": zip,
+    "upper": str.upper,
+    "lower": str.lower,
+    "title": str.title,
+    "repr": repr,
+}
+
+
+def _run_vars(source: str, seed: int | None) -> dict:
+    """Execute the `<vars>` block and return the names it defined.
+
+    The block is ordinary Python: `x = randint(1, 10)` or
+    `city = choice(['Oslo', 'Lima'])`. Later lines can use earlier names, so
+    derived values (like a computed total) stay consistent with the inputs.
+    """
+    if not source.strip():
+        return {}
+    saved = random.getstate()
+    if seed is not None:
+        random.seed(seed)
+    scope = dict(_VAR_NAMESPACE)
+    try:
+        exec(compile(source, "<vars>", "exec"), scope)
+    finally:
+        if seed is not None:
+            random.setstate(saved)
+    return {k: v for k, v in scope.items() if not k.startswith("_") and k not in _VAR_NAMESPACE}
+
+
+def _fmt(value, literal: bool = False) -> str:
+    """Render a value the way the lesson text wants it.
+
+    A list becomes newline-joined lines, because in a lesson template a list
+    nearly always means "print each of these". A float keeps Python's own
+    repr so it matches `print()` exactly.
+    """
+    if isinstance(value, (list, tuple)):
+        if literal:
+            return repr(list(value))
+        return "\n".join(str(v) for v in value)
+    return str(value)
+
+
+def _fill(text: str, values: dict, literal: bool = False) -> str:
+    """Replace `{{expression}}` with the value of that expression.
+
+    A template may be a plain name (`{{total}}`) or a full expression
+    (`{{[f"{i}. {t}" for i, t in enumerate(items)]}}`), which is what makes
+    it possible to write a list or a comprehension straight into `expect`.
+    Anything that fails to evaluate is left untouched, so a stray `{{` in
+    prose is not an error.
+    """
+    if not text:
+        return text
+
+    scope = dict(_VAR_NAMESPACE)
+    scope.update(values)
+
+    def replace(match: re.Match) -> str:
+        expr = match.group(1).strip()
+        try:
+            return _fmt(eval(expr, {"__builtins__": {}}, scope), literal)
+        except Exception:
+            return match.group(0)
+
+    return _VAR_REF.sub(replace, text)
+
+
+def _render_block(block: Block, values: dict) -> Block:
+    # code blocks are Python source, so a list there must stay a literal
+    literal = block.kind == "code"
+    return Block(block.kind, _fill(block.text, values, literal), block.lang)
+
+
+# --------------------------------------------------------------------------- #
+#  Course
+# --------------------------------------------------------------------------- #
+
+
+def load_course(folder: str | Path) -> list[CourseModule]:
+    """Read every `*.md` in `folder` and group the levels by module number."""
+    folder = Path(folder)
+    if not folder.is_dir():
+        raise FileNotFoundError(f"lesson folder not found: {folder}")
+
+    levels: list[Level] = []
+    for path in sorted(folder.glob("*.md")):
+        if path.name.lower() == "readme.md":
+            continue
+        levels.append(parse_level(path))
+
+    by_module: dict[int, list[Level]] = {}
+    for level in levels:
+        by_module.setdefault(level.module, []).append(level)
+
+    modules: list[CourseModule] = []
+    for number in sorted(by_module):
+        modules.append(
+            CourseModule(
+                number=number,
+                title=MODULE_TITLES.get(number, f"Module {number}"),
+                blurb=MODULE_BLURBS.get(number, ""),
+                levels=sorted(by_module[number], key=lambda l: l.order),
+            )
+        )
+    return modules
+
+
+#: Module titles live here rather than in the level files: a module is a
+#: grouping, not a lesson, and every level would otherwise repeat it.
+MODULE_TITLES = {
+    1: "First Steps",
+    2: "Values & Maths",
+    3: "Decisions",
+    4: "Repetition",
+    5: "Collections",
+    6: "Functions",
+    7: "Objects",
+    8: "Batteries",
+}
+
+MODULE_BLURBS = {
+    1: "Your first lines of Python: printing messages and drawing with text.",
+    2: "Store values in names, then do arithmetic on them — including the "
+       "unit conversions you meet every day.",
+    3: 'Teach a program to choose, using comparisons, if / elif / else, and '
+       "the logical operators.",
+    4: "Make Python repeat work for you with while loops, for loops and "
+       "counters.",
+    5: "Keep many values together in a list, then sort, count and walk "
+       "through them.",
+    6: "Write a block of code once, name it, and call it as often as you like.",
+    7: "Define your own types with classes, so your code can model real "
+       "objects and their behaviour.",
+    8: "Reach into Python's standard library and reuse code other people "
+       "already wrote.",
+}
