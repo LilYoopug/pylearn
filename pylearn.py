@@ -10,10 +10,13 @@ Mouse: everything is clickable (works in Termux too).
 from __future__ import annotations
 
 import asyncio
+import json
 import math
 import random
 import re
 import sys
+
+from pathlib import Path
 
 from dataclasses import dataclass
 
@@ -1169,6 +1172,96 @@ class Module:
 
 
 LESSON_DIR = "lessons"
+
+PROGRESS_FILE = Path(__file__).resolve().with_name("pylearn_progress.json")
+"""Where level state and XP are kept between runs."""
+
+PROGRESS_VERSION = 1
+
+# --------------------------------------------------------------------------- #
+#  Progress — what survives a restart
+# --------------------------------------------------------------------------- #
+#
+# Only level STATE is stored, keyed by the lesson slug (`01-02-hello-world`),
+# never by level number: inserting a lesson file in the middle would shift
+# every number and corrupt someone's saved progress.
+#
+# The rolled values of a level are deliberately NOT stored. `_load_level()`
+# re-rolls on every visit, which is what stops the answer being memorised.
+
+
+def load_progress() -> dict:
+    """Read the save file, tolerating anything that is not valid.
+
+    A corrupt or half-written file must not stop the app from starting, so any
+    problem falls back to an empty progress rather than raising.
+    """
+    try:
+        raw = PROGRESS_FILE.read_text(encoding="utf-8")
+        data = json.loads(raw)
+    except (FileNotFoundError, OSError, ValueError):
+        return {"version": PROGRESS_VERSION, "levels": {}, "xp": 0}
+    if not isinstance(data, dict):
+        return {"version": PROGRESS_VERSION, "levels": {}, "xp": 0}
+    levels = data.get("levels")
+    return {
+        "version": PROGRESS_VERSION,
+        "levels": levels if isinstance(levels, dict) else {},
+        "xp": int(data.get("xp", 0) or 0),
+    }
+
+
+def save_progress(data: dict) -> None:
+    """Write the save file atomically, so a crash cannot truncate it."""
+    tmp = PROGRESS_FILE.with_suffix(".json.tmp")
+    try:
+        tmp.write_text(json.dumps(data, indent=1, sort_keys=True), encoding="utf-8")
+        tmp.replace(PROGRESS_FILE)
+    except OSError as exc:
+        print(f"pylearn: could not save progress ({exc})", file=sys.stderr)
+
+
+def apply_progress(modules: list, data: dict) -> None:
+    """Merge saved state into the freshly loaded course.
+
+    A level counts as unlocked when the one before it is done, so unlocking is
+    derived from the data instead of stored twice.
+    """
+    saved = data.get("levels", {})
+    previous_done = True          # the first level is always open
+    for module in modules:
+        for level in module.levels:
+            slug = getattr(level.lesson, "slug", "")
+            entry = saved.get(slug, {})
+            if entry.get("done"):
+                level.state = "done"
+            elif previous_done:
+                level.state = "unlocked"
+            else:
+                level.state = "locked"
+            previous_done = level.state == "done"
+
+
+def collect_progress(app) -> dict:
+    """Build the save payload from the live app state."""
+    levels = {}
+    for module in app.modules:
+        for level in module.levels:
+            slug = getattr(level.lesson, "slug", "")
+            failures = app.failures.get(slug, 0)
+            if level.state == "done" or failures:
+                levels[slug] = {
+                    "done": level.state == "done",
+                    "failures": failures,
+                }
+    return {
+        "version": PROGRESS_VERSION,
+        "levels": levels,
+        "xp": sum(
+            lv.xp for m in app.modules for lv in m.levels if lv.state == "done"
+        ),
+    }
+
 
 HINT_AFTER = 3
 """Wrong submissions before the Hint row unlocks."""
@@ -2328,6 +2421,7 @@ class SettingsPage(Vertical):
         self.accent = accent
         self.animate = animate
         self.density = density
+        self._reset_armed = False
 
     def compose(self) -> ComposeResult:
         yield Static("Settings", id="set-title")
@@ -2339,6 +2433,10 @@ class SettingsPage(Vertical):
 
         yield Static("FEEDBACK", classes="set-group")
         yield Static(self._conf_text(), id="set-conf", classes="set-row")
+
+        yield Static("PROGRESS", classes="set-group")
+        yield Static("Reset progress          clear levels, XP and hints",
+                     id="set-reset", classes="set-row")
 
         yield Static("Click a row to change it. Esc returns to the lesson.",
                      id="set-hint")
@@ -2376,6 +2474,9 @@ class SettingsPage(Vertical):
             self.animate = animate
             self.density = density
 
+    class ResetRequested(Message):
+        """The reset row was clicked (already confirmed twice)."""
+
     def on_click(self, event) -> None:
         widget = event.widget
         if widget is None:
@@ -2393,6 +2494,16 @@ class SettingsPage(Vertical):
             index = order.index(self.density) if self.density in order else 1
             self.density = order[(index + 1) % len(order)]
             self.query_one("#set-conf", Static).update(self._conf_text())
+        elif widget.id == "set-reset":
+            # first click arms it, second click does it
+            if not self._reset_armed:
+                self._reset_armed = True
+                self.query_one("#set-reset", Static).update(
+                    "Reset progress          click again to confirm"
+                )
+                return
+            self.post_message(self.ResetRequested())
+            return
         else:
             return
         self.post_message(self.Changed(self.accent, self.animate, self.density))
@@ -2515,6 +2626,19 @@ class PyLearnApp(App):
 
     def on_load(self) -> None:
         self.modules = _build_modules()
+        saved = load_progress()
+        apply_progress(self.modules, saved)
+        # restore the per-level wrong-answer counts that gate Hint/Solution
+        for module in self.modules:
+            for level in module.levels:
+                slug = getattr(level.lesson, "slug", "")
+                entry = saved.get("levels", {}).get(slug, {})
+                if entry.get("failures"):
+                    self.failures[slug] = int(entry["failures"])
+
+    def persist(self) -> None:
+        """Write the current state to disk. Cheap; called after each change."""
+        save_progress(collect_progress(self))
 
     exercise = 1
 
@@ -3095,6 +3219,7 @@ class PyLearnApp(App):
             self._bump_failures(lesson)
             self._show_wrong(expected, actual, hint)
             self._refresh_help()
+            self.persist()
 
     def _show_wrong(self, expected: str, actual: str, hint: str) -> None:
         """Report a wrong answer where the evidence is, and once in the corner.
@@ -3127,6 +3252,7 @@ class PyLearnApp(App):
         self.query_one(XPBar).set_pct(100)
         self.query_one("#pct", Label).update("100%")
         self.notify(f"Correct!  +{gained} XP", title="Nice work", timeout=3)
+        self.persist()
 
     sidebar_open = False
     settings_open = False
@@ -3233,8 +3359,6 @@ class PyLearnApp(App):
         if not path:
             self.notify("No path given.", severity="warning", timeout=2)
             return
-        from pathlib import Path
-
         target = Path(path).expanduser()
         if target.suffix != ".py":
             self.notify("That is not a .py file.", title="Load failed",
@@ -3308,6 +3432,31 @@ class PyLearnApp(App):
                 self.query_one("#editor", PyTextArea).focus()
             except Exception:
                 pass
+
+    def on_settings_page_reset_requested(
+        self, event: "SettingsPage.ResetRequested"
+    ) -> None:
+        event.stop()
+        self.reset_progress()
+
+    def reset_progress(self) -> None:
+        """Wipe the save file and put the course back to its starting state."""
+        try:
+            PROGRESS_FILE.unlink()
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            self.notify(f"Could not delete the save file: {exc}",
+                        title="Reset failed", severity="error", timeout=4)
+            return
+        self.failures.clear()
+        for module in self.modules:
+            module.levels[0].state = "unlocked"
+            for index, level in enumerate(module.levels):
+                level.state = "unlocked" if index == 0 else "locked"
+        self.persist()
+        self.notify("Progress cleared.", title="Reset", timeout=2)
+        self.close_settings()
 
     def on_settings_page_changed(self, event: "SettingsPage.Changed") -> None:
         event.stop()
