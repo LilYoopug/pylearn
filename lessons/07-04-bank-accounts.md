@@ -3,6 +3,7 @@ order: 4
 exercise: 37
 title: Bank Accounts
 module: 7
+check: strict
 vars: |
   start = randint(100, 900)
   deposit = randint(50, 400)

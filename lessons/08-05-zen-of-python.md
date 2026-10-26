@@ -3,6 +3,7 @@ order: 5
 exercise: 43
 title: Zen of Python
 module: 8
+check: output
 vars: |
   count = 3
 expect: |

@@ -3,6 +3,7 @@ order: 2
 exercise: 35
 title: Menu Board
 module: 7
+check: strict
 vars: |
   item = choice(['burger', 'fries', 'shake'])
   price = randint(4, 15)

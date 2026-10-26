@@ -3,6 +3,7 @@ order: 5
 exercise: 5
 title: Envelope
 module: 1
+check: strict
 vars: |
   name = choice(['Ada', 'Grace', 'Alan', 'Katherine', 'Linus', 'Margaret'])
   city = choice(['Oslo', 'Lima', 'Kyoto', 'Cairo', 'Lisbon', 'Nairobi'])

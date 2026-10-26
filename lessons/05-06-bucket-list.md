@@ -3,6 +3,7 @@ order: 6
 exercise: 27
 title: Bucket List
 module: 5
+check: strict
 vars: |
   dreams = sample(['see the northern lights', 'learn to sail',
                    'run a marathon', 'visit Japan', 'write a book'], 3)

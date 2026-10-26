@@ -3,6 +3,7 @@ order: 1
 exercise: 17
 title: Enter PIN
 module: 4
+check: strict
 vars: |
   pin = randint(1000, 9999)
 expect: |

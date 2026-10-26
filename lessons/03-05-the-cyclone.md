@@ -3,6 +3,7 @@ order: 5
 exercise: 15
 title: Ride Check
 module: 3
+check: strict
 vars: |
   height = randint(120, 200)
   credits = randint(0, 10)

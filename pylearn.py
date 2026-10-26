@@ -1973,6 +1973,19 @@ PROGRESS_FILE = Path(__file__).resolve().with_name("pylearn_progress.json")
 
 PROGRESS_VERSION = 1
 
+#: How an answer is judged. A lesson declares one in its frontmatter:
+#:
+#:   check: output   compare stdout with `expect` — the default
+#:   check: strict   the same, and the program must also exit cleanly
+#:
+#: `reseed` (re-roll the level and run the answer again) was tried and
+#: removed. Every lesson states its numbers on screen, so the reference
+#: solution itself is written with those literals — re-rolling rejected the
+#: correct answer. Guarding against a copied number needs lessons that take a
+#: value from somewhere other than the text, which is a rewrite of the
+#: material, not a checker setting.
+CHECK_MODES = ("output", "strict")
+
 # --------------------------------------------------------------------------- #
 #  Progress — what survives a restart
 # --------------------------------------------------------------------------- #
@@ -4032,12 +4045,52 @@ class PyLearnApp(App):
             log.write(f"[{ERROR}]{exc}[/]")
             return
         self._last_stdout = out.decode(errors="replace")
+        self._last_run_code = code
         for line in self._last_stdout.splitlines():
             log.write(Text(line, style=TEXT))
         for line in err.decode(errors="replace").splitlines():
             log.write(Text(line, style=ERROR))
 
     _last_stdout = ""
+    _last_run_code: "str | None" = None
+
+    async def _run_code(self, code: str) -> tuple[str, str, int]:
+        """Run `code` in a subprocess; return (stdout, stderr, returncode)."""
+        proc = await asyncio.create_subprocess_exec(
+            sys.executable, "-c", code,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )
+        try:
+            out, err = await asyncio.wait_for(proc.communicate(), timeout=5)
+        except asyncio.TimeoutError:
+            proc.kill()
+            return "", "Timed out after 5 seconds.", -1
+        return (out.decode(errors="replace"),
+                err.decode(errors="replace"),
+                proc.returncode or 0)
+
+    async def check_answer(self, level, lesson, code: str) -> tuple[bool, str]:
+        """Decide whether `code` solves `lesson`.
+
+        Compares stdout with the level's `expect`. In `strict` mode a program
+        that exits non-zero is rejected even when it printed the right line,
+        so a crash cannot pass as an answer.
+        """
+        mode = getattr(lesson, "check", "output")
+        expect = (lesson.expect or "").strip()
+
+        out, err, code_rc = await self._run_code(code)
+        actual = out.strip()
+
+        if expect and actual != expect:
+            return False, f"Expected {expect!r}, got {actual!r}."
+        if not expect and not actual:
+            return False, "Run it first — nothing was printed."
+
+        if mode == "strict" and code_rc != 0:
+            first = err.strip().splitlines()[0] if err.strip() else "exit code"
+            return False, f"The program failed: {first}"
+        return True, ""
 
     def action_submit_answer(self) -> None:
         """Judge the answer, then react to it.
@@ -4048,26 +4101,36 @@ class PyLearnApp(App):
         """
         level = self._selected
         lesson = level.lesson if level is not None else None
-        expected = (lesson.expect or "").strip() if lesson else ""
-        actual = self._last_stdout.strip()
 
         if not self.query_one("#editor", PyTextArea).text.strip():
             self.notify("Write some code first, then Run and submit.",
                         title="Editor is empty", severity="warning", timeout=4)
         elif lesson is None:
             self.notify("No lesson loaded.", severity="warning", timeout=3)
-        elif expected and actual == expected:
-            self._complete_level(level, lesson)
-        elif not expected and actual:
-            # no expected output: any successful run counts
-            self._complete_level(level, lesson)
         else:
-            hint = (f"Expected {expected!r}, got {actual!r}."
-                    if expected else "Run it first.")
-            self._bump_failures(lesson)
-            self._show_wrong(expected, actual, hint)
-            self._refresh_help()
-            self.persist()
+            self.run_worker(self._judge(level, lesson), exclusive=True)
+
+    async def _judge(self, level, lesson) -> None:
+        """Run the level's check, then react to the verdict."""
+        editor = self.query_one("#editor", PyTextArea)
+        code = editor.text
+
+        # The answer must be the code that was actually run. Without this,
+        # running the solution and then editing it still passed.
+        if self._last_run_code is not None and code != self._last_run_code:
+            self.notify("Press Run again — the code changed since it last ran.",
+                        title="Run it first", severity="warning", timeout=4)
+            return
+
+        self.query_one("#term-wrap").add_class("-ran")
+        ok, message = await self.check_answer(level, lesson, code)
+        if ok:
+            self._complete_level(level, lesson)
+            return
+        self._bump_failures(lesson)
+        self._show_wrong(lesson.expect or "", self._last_stdout.strip(), message)
+        self._refresh_help()
+        self.persist()
 
     def _show_wrong(self, expected: str, actual: str, hint: str) -> None:
         """Report a wrong answer where the evidence is, and once in the corner.

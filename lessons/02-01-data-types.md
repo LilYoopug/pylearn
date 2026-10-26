@@ -3,6 +3,7 @@ order: 1
 exercise: 6
 title: Data Types
 module: 2
+check: strict
 vars: |
   a = randint(2, 12)
   b = randint(2, 12)

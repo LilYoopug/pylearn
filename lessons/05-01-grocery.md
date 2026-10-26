@@ -3,6 +3,7 @@ order: 1
 exercise: 22
 title: Grocery
 module: 5
+check: strict
 vars: |
   items = sample(['milk', 'bread', 'eggs', 'rice', 'apples', 'coffee'], 3)
 expect: |

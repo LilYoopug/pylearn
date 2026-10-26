@@ -3,6 +3,7 @@ order: 4
 exercise: 42
 title: Forty Two
 module: 8
+check: output
 vars: |
   target = 42
 expect: "{{float(target)}}"

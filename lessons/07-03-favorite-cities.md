@@ -3,6 +3,7 @@ order: 3
 exercise: 36
 title: Favorite Cities
 module: 7
+check: strict
 vars: |
   cities = sample(['Tokyo', 'Lisbon', 'Cairo', 'Oslo', 'Quito', 'Perth'], 3)
 expect: |

@@ -211,6 +211,19 @@ print(greeting)      # ✓
 Wrong answers put a red line in the Terminal and leave the level unfinished.
 Hint unlocks after 3 wrong submissions, Solution after 6.
 
+Each lesson declares how it is judged with `check:` in its frontmatter:
+
+| `check:` | meaning |
+|----------|---------|
+| `output` | stdout must equal `expect` (the default) |
+| `strict` | the same, and the program must also exit cleanly |
+
+`strict` stops a program that crashes halfway from counting as an answer.
+A third mode, `reseed`, was tried and removed: it re-rolled the level and ran
+the answer again to catch a copied number, but every lesson prints its values
+on screen, so the reference solution itself is written with those literals and
+was rejected by its own checker.
+
 ## Layout
 
 ```

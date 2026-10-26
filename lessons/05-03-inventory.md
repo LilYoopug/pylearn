@@ -3,6 +3,7 @@ order: 3
 exercise: 24
 title: Inventory
 module: 5
+check: strict
 vars: |
   items = sample(['sword', 'shield', 'potion', 'rope', 'torch', 'map'], 4)
   count = len(items)

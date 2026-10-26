@@ -3,6 +3,7 @@ order: 5
 exercise: 26
 title: Playlist
 module: 5
+check: strict
 vars: |
   tracks = sample(['Blue Monday', 'Nights', 'Teardrop', 'Redbone',
                    'Borderline', 'Dreams'], 4)

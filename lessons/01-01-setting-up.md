@@ -3,6 +3,7 @@ order: 1
 exercise: 1
 title: Setting Up
 module: 1
+check: output
 expect: Hello, World!
 ---
 

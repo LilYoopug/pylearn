@@ -3,6 +3,7 @@ order: 1
 exercise: 34
 title: Restaurants
 module: 7
+check: strict
 vars: |
   name = choice(['Blue Door', 'Sakura', 'Corner Cafe', 'Little Italy'])
   cuisine = choice(['Italian', 'Japanese', 'French', 'Mexican'])

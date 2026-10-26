@@ -3,6 +3,7 @@ order: 4
 exercise: 9
 title: Pythagorean
 module: 2
+check: strict
 vars: |
   a = randint(3, 15)
   b = randint(3, 15)

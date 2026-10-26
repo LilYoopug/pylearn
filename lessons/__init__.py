@@ -46,6 +46,9 @@ class Level:
     expect: str | None = None
     start: str = "# Write code below 💖\n\n"
 
+    check: str = "output"
+    """How this level is judged: `output`, `reseed` or `strict`."""
+
     _vars_src: str = ""
     """Raw `<vars>` body, executed on every roll()."""
 
@@ -224,6 +227,7 @@ def parse_level(path: Path) -> Level:
         slug=path.stem,
         start=meta.get("start", "# Write code below 💖\n\n"),
         _vars_src=vars_src,
+        check=(meta.get("check") or "output").strip(),
         _raw={
             "learn": learn,
             "instructions": instructions,

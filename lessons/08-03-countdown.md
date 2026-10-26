@@ -3,6 +3,7 @@ order: 3
 exercise: 41
 title: Countdown
 module: 8
+check: strict
 vars: |
   start = randint(3, 7)
 expect: |

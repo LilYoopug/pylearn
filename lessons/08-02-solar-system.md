@@ -3,6 +3,7 @@ order: 2
 exercise: 40
 title: Solar System
 module: 8
+check: strict
 vars: |
   planet = choice(['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter'])
   distance = {'Mercury': 57.9, 'Venus': 108.2, 'Earth': 149.6,

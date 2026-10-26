@@ -3,6 +3,7 @@ order: 6
 exercise: 33
 title: Drive-Thru
 module: 6
+check: strict
 vars: |
   item = choice(['burger', 'fries', 'shake', 'taco'])
   price = randint(3, 12)

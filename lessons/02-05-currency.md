@@ -3,6 +3,7 @@ order: 5
 exercise: 10
 title: Currency
 module: 2
+check: strict
 vars: |
   pesos = randint(100, 2000)
   soles = randint(100, 2000)

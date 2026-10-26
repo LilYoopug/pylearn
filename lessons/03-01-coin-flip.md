@@ -3,6 +3,7 @@ order: 1
 exercise: 11
 title: Coin Flip
 module: 3
+check: strict
 vars: |
   guess = choice(['Heads', 'Tails'])
   flip = choice(['Heads', 'Tails'])

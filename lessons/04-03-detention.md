@@ -3,6 +3,7 @@ order: 3
 exercise: 19
 title: Detention
 module: 4
+check: strict
 vars: |
   lines = randint(3, 7)
 expect: |

@@ -3,6 +3,7 @@ order: 2
 exercise: 7
 title: Temperature
 module: 2
+check: strict
 vars: |
   temp_f = randint(20, 110)
   temp_c = (temp_f - 32) / 1.8

@@ -3,6 +3,7 @@ order: 6
 exercise: 16
 title: House Sorter
 module: 3
+check: strict
 vars: |
   score = randint(0, 100)
   if score >= 90:

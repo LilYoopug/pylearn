@@ -3,6 +3,7 @@ order: 1
 exercise: 39
 title: Reels
 module: 8
+check: strict
 vars: |
   import random as _r
   symbols = ['cherry', 'lemon', 'bell', 'star']

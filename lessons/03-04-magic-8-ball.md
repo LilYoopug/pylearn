@@ -3,6 +3,7 @@ order: 4
 exercise: 14
 title: Fortune Ball
 module: 3
+check: strict
 vars: |
   question = choice(['Will it rain today?', 'Should I learn Python?',
                      'Is it a good day for a walk?', 'Will I finish this course?'])

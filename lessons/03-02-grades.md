@@ -3,6 +3,7 @@ order: 2
 exercise: 12
 title: Grades
 module: 3
+check: strict
 vars: |
   grade = randint(30, 100)
   result = 'You passed.' if grade >= 55 else 'You failed.'

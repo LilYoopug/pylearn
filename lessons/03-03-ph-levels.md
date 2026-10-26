@@ -3,6 +3,7 @@ order: 3
 exercise: 13
 title: pH Levels
 module: 3
+check: strict
 vars: |
   ph = randint(0, 14)
   if ph < 7:

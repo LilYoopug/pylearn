@@ -3,6 +3,7 @@ order: 4
 exercise: 4
 title: Initials
 module: 1
+check: output
 expect: |
   AAAAA
   A   A

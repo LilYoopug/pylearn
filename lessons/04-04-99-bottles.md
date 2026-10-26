@@ -3,6 +3,7 @@ order: 4
 exercise: 20
 title: 99 Bottles
 module: 4
+check: strict
 vars: |
   start = randint(3, 6)
 expect: |

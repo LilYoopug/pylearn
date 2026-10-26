@@ -3,6 +3,7 @@ order: 4
 exercise: 25
 title: Reading
 module: 5
+check: strict
 vars: |
   books = sample(['Dune', 'Emma', 'Beloved', 'Ulysses', 'Dracula', 'Middlemarch'], 3)
   target = books[1]

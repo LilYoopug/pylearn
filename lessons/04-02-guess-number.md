@@ -3,6 +3,7 @@ order: 2
 exercise: 18
 title: Guess Number
 module: 4
+check: strict
 vars: |
   secret = randint(1, 20)
   steps = 0

@@ -3,6 +3,7 @@ order: 5
 exercise: 32
 title: Stock Value
 module: 6
+check: strict
 vars: |
   price = randint(20, 300)
   shares = randint(2, 40)

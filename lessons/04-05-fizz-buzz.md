@@ -3,6 +3,7 @@ order: 5
 exercise: 21
 title: Fizz Buzz
 module: 4
+check: strict
 vars: |
   limit = randint(5, 9)
 expect: |

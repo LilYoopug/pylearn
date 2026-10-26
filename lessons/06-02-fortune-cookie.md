@@ -3,6 +3,7 @@ order: 2
 exercise: 29
 title: Fortune Cookie
 module: 6
+check: strict
 vars: |
   fortunes = ['You will find what you seek.',
               'A small step today saves a long walk tomorrow.',

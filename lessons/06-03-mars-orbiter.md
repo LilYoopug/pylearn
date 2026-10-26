@@ -3,6 +3,7 @@ order: 3
 exercise: 30
 title: Mars Orbiter
 module: 6
+check: strict
 vars: |
   days = randint(30, 400)
   hours = days * 24

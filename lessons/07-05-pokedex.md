@@ -3,6 +3,7 @@ order: 5
 exercise: 38
 title: Monster Index
 module: 7
+check: strict
 vars: |
   mons = sample(['Bulbasaur', 'Charmander', 'Squirtle', 'Pikachu', 'Eevee'], 2)
 expect: |

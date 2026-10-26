@@ -3,6 +3,7 @@ order: 3
 exercise: 3
 title: Pattern
 module: 1
+check: output
 expect: |
          1
        2 3

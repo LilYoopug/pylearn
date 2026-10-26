@@ -3,6 +3,7 @@ order: 4
 exercise: 31
 title: Calculator
 module: 6
+check: strict
 vars: |
   a = randint(4, 20)
   b = randint(2, 9)
