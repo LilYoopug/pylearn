@@ -56,8 +56,45 @@ python pylearn.py
 | `↑` `↓` | Move through the level list |
 | `Enter` | Open a level / start |
 | `Esc` | Back one screen, close a popup |
+| `Tab` / `Enter` | Expand the highlighted snippet |
+| `↑` `↓` | Move through snippet matches (while the popup is open) |
 
 Everything is also clickable.
+
+## Snippets
+
+The editor completes snippets the way VS Code does: type a short prefix, pick
+from the popup, and the body is written out with the caret in the first slot.
+
+```
+for█                ┌──────────────────────────────────┐
+                    │ ▸ for      for loop over a range │
+                    │   forenum  for loop with an index│
+                    │   forin    for loop over a sequence
+                    └──────────────────────────────────┘
+```
+
+Press `Tab` or `Enter` to expand, `Esc` to dismiss. The whole list:
+
+| prefix | expands to |
+|--------|-----------|
+| `for` | `for i in range(n):` |
+| `forenum` | `for i, item in enumerate(items):` |
+| `forin` | `for item in items:` |
+| `while` | `while condition:` |
+| `if` / `ife` / `elif` / `else` | the usual branches |
+| `def` / `defr` | function definition, with or without `return` |
+| `class` | class with `__init__` |
+| `try` | `try` / `except` |
+| `with` | context manager |
+| `lambda` | `lambda x: x` |
+| `listcomp` / `dictcomp` | comprehensions |
+| `print` / `input` | `print(value)` / `input(prompt)` |
+| `main` | `if __name__ == "__main__":` |
+| `import` / `from` | import statements |
+
+Snippets are indentation aware: expanding `for` on an indented line keeps the
+body inside that block.
 
 The app opens on a menu, `Start` takes you to the level map, and `Home` walks
 back up one screen at a time. `⚙ Setup` holds the accent colour, the menu

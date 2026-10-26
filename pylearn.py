@@ -1033,6 +1033,105 @@ class HelpItem(Vertical):
             self.query_one(".hi-chev", Label).update("⌃" if self.has_class("-open") else "⌄")
 
 
+# --------------------------------------------------------------------------- #
+#  Snippets — the VS Code habit, inside the editor
+# --------------------------------------------------------------------------- #
+#
+# Same idea as a VS Code user snippet: type a short prefix, pick it from the
+# list, and the body is written out with the caret left in the first slot.
+# `\t` marks one level of indentation relative to the line being typed, and
+# `${1:name}` is a slot whose placeholder text is selected on insertion.
+
+
+@dataclass(frozen=True)
+class Snippet:
+    prefix: str
+    description: str
+    body: str
+
+
+SNIPPETS: tuple[Snippet, ...] = (
+    Snippet("for", "for loop over a range",
+            "for ${1:i} in range(${2:n}):\n\t${3:pass}"),
+    Snippet("forenum", "for loop with an index",
+            "for ${1:i}, ${2:item} in enumerate(${3:items}):\n\t${4:pass}"),
+    Snippet("forin", "for loop over a sequence",
+            "for ${1:item} in ${2:items}:\n\t${3:pass}"),
+    Snippet("while", "while loop",
+            "while ${1:condition}:\n\t${2:pass}"),
+    Snippet("if", "if statement",
+            "if ${1:condition}:\n\t${2:pass}"),
+    Snippet("ife", "if / else",
+            "if ${1:condition}:\n\t${2:pass}\nelse:\n\t${3:pass}"),
+    Snippet("elif", "else if",
+            "elif ${1:condition}:\n\t${2:pass}"),
+    Snippet("else", "else branch",
+            "else:\n\t${1:pass}"),
+    Snippet("def", "function definition",
+            "def ${1:name}(${2:args}):\n\t${3:pass}"),
+    Snippet("defr", "function that returns",
+            "def ${1:name}(${2:args}):\n\treturn ${3:value}"),
+    Snippet("class", "class definition",
+            "class ${1:Name}:\n\tdef __init__(self${2:, args}):\n\t\t${3:pass}"),
+    Snippet("try", "try / except",
+            "try:\n\t${1:pass}\nexcept ${2:Exception} as ${3:err}:\n\t${4:pass}"),
+    Snippet("with", "context manager",
+            "with ${1:open('file')} as ${2:f}:\n\t${3:pass}"),
+    Snippet("lambda", "anonymous function",
+            "lambda ${1:x}: ${2:x}"),
+    Snippet("listcomp", "list comprehension",
+            "[${1:expr} for ${2:item} in ${3:items}]"),
+    Snippet("dictcomp", "dict comprehension",
+            "{${1:key}: ${2:value} for ${3:item} in ${4:items}}"),
+    Snippet("print", "print to the terminal",
+            "print(${1:value})"),
+    Snippet("input", "read a line of input",
+            "input(${1:prompt})"),
+    Snippet("main", "script entry point",
+            "if __name__ == \"__main__\":\n\t${1:main()}"),
+    Snippet("import", "import a module",
+            "import ${1:module}"),
+    Snippet("from", "import names from a module",
+            "from ${1:module} import ${2:name}"),
+)
+
+SNIPPETS_BY_PREFIX = {sn.prefix: sn for sn in SNIPPETS}
+
+_PLACEHOLDER = re.compile(r"\$\{(\d+):([^}]*)\}|\$(\d+)")
+
+
+def expand_snippet(body: str, indent: str) -> tuple[str, int]:
+    """Turn a snippet body into real text, and say where the caret belongs.
+
+    `indent` is the leading whitespace of the line being typed, so a snippet
+    inserted inside a block stays inside that block. The caret goes to the
+    first slot, which is what makes the expansion feel like an editor rather
+    than a paste.
+    """
+    out: list[str] = []
+    caret = -1
+    pos = 0
+    for match in _PLACEHOLDER.finditer(body):
+        chunk = body[pos:match.start()]
+        out.append(chunk)
+        if caret < 0:
+            caret = sum(len(part) for part in out)
+        # ${1:name} keeps its text, $1 leaves an empty slot
+        out.append(match.group(2) or "")
+        pos = match.end()
+    out.append(body[pos:])
+
+    text = "".join(out)
+    lines = text.split("\n")
+    text = ("\n" + indent).join(lines)          # indent every line but the first
+    text = text.replace("\t", "    ")             # relative tabs become spaces
+
+    # recompute the caret after indentation changed the offsets
+    if caret >= 0:
+        before = text[:caret]
+        caret += before.count("\n") * len(indent)
+    return text, max(0, caret)
+
 class PyTextArea(TextArea):
     """TextArea coloured by Pygments instead of tree-sitter.
 
@@ -1045,6 +1144,102 @@ class PyTextArea(TextArea):
     def __init__(self, text: str, **kwargs) -> None:
         super().__init__(text, language=None, **kwargs)
         self._line_cache.clear()
+        self._menu: "SnippetMenu | None" = None
+        self._word = ""
+
+    # -- completion -----------------------------------------------------
+    @property
+    def menu(self) -> "SnippetMenu":
+        """The popup, mounted once on the screen the first time it is needed."""
+        if self._menu is None:
+            self._menu = SnippetMenu(id="snippet-menu")
+            self.screen.mount(self._menu)
+        return self._menu
+
+    def _word_before_cursor(self) -> str:
+        row, column = self.cursor_location
+        line = self.document.get_line(row)[:column]
+        match = re.search(r"[A-Za-z_][A-Za-z0-9_]*$", line)
+        return match.group(0) if match else ""
+
+    def _place_menu(self) -> None:
+        """Park the popup just under the caret, clamped to the editor."""
+        menu = self.menu
+        row, column = self.cursor_location
+        offset = self.scroll_offset
+        gutter = self.gutter_width
+        x = self.region.x + gutter + column - offset.x
+        y = self.region.y + row - offset.y + 1
+        # keep it inside the editor so it never floats over the terminal
+        width = min(46, self.size.width)
+        height = len(menu.matches) + 2
+        x = max(self.region.x, min(x, self.region.right - width))
+        y = max(self.region.y, min(y, self.region.bottom - height))
+        menu.styles.offset = (x - self.screen.region.x, y - self.screen.region.y)
+
+    def refresh_completions(self) -> None:
+        word = self._word_before_cursor()
+        self._word = word
+        if not word:
+            self.menu.hide()
+            return
+        matches = [sn for sn in SNIPPETS if sn.prefix.startswith(word)]
+        if not matches or (len(matches) == 1 and matches[0].prefix == word):
+            # an exact prefix is already the snippet the user meant
+            self.menu.hide()
+            return
+        self.menu.show(matches, 0)
+        self._place_menu()
+
+    def apply_snippet(self) -> None:
+        snippet = self.menu.current()
+        if snippet is None:
+            return
+        row, column = self.cursor_location
+        line = self.document.get_line(row)
+        indent = line[: len(line) - len(line.lstrip())]
+        body, caret = expand_snippet(snippet.body, indent)
+        self.delete((row, column - len(self._word)), (row, column))
+        self.insert(body)
+        self.move_cursor((row, column - len(self._word) + caret))
+        self.menu.hide()
+
+    def move_suggestion(self, delta: int) -> None:
+        menu = self.menu
+        menu.show(menu.matches, (menu.index + delta) % len(menu.matches))
+        self._place_menu()
+
+    # -- events ---------------------------------------------------------
+    async def _on_key(self, event) -> None:
+        menu = self._menu
+        if menu is not None and menu.open:
+            key = event.key
+            if key == "down":
+                event.stop()
+                event.prevent_default()
+                self.move_suggestion(1)
+                return
+            if key == "up":
+                event.stop()
+                event.prevent_default()
+                self.move_suggestion(-1)
+                return
+            if key in ("tab", "enter"):
+                event.stop()
+                event.prevent_default()
+                self.apply_snippet()
+                return
+            if key == "escape":
+                event.stop()
+                event.prevent_default()
+                menu.hide()
+                return
+        await super()._on_key(event)
+        self.refresh_completions()
+
+    def on_blur(self) -> None:
+        if self._menu is not None:
+            self._menu.hide()
 
     def _build_highlight_map(self) -> None:
         self._line_cache.clear()
@@ -1090,6 +1285,62 @@ def _token_role(ttype) -> str:
         return "number"
     return ""
 
+
+class SnippetMenu(Static):
+    """A VS Code style completion popup: a small list under the caret."""
+
+    DEFAULT_CSS = """
+    SnippetMenu {
+        layer: overlay;
+        width: auto;
+        max-width: 46;
+        height: auto;
+        max-height: 11;
+        background: #1b2436;
+        border: round #3b4a6b;
+        padding: 0 1;
+        display: none;
+    }
+    """
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__("", **kwargs)
+        self.matches: list[Snippet] = []
+        self.index = 0
+
+    def show(self, matches: list[Snippet], index: int = 0) -> None:
+        self.matches = matches
+        self.index = max(0, min(index, len(matches) - 1))
+        self.display = bool(matches)
+        self.refresh(layout=True)
+
+    def hide(self) -> None:
+        self.matches = []
+        self.display = False
+
+    @property
+    def open(self) -> bool:
+        return bool(self.matches)
+
+    def current(self) -> "Snippet | None":
+        return self.matches[self.index] if self.matches else None
+
+    def render(self) -> Text:
+        text = Text(no_wrap=True)
+        for row, snippet in enumerate(self.matches):
+            selected = row == self.index
+            if selected:
+                text.append("▸ ", Style(color=GREEN, bold=True))
+            else:
+                text.append("  ", Style())
+            text.append(
+                f"{snippet.prefix:<10}",
+                Style(color=GREEN if selected else TEXT, bold=selected),
+            )
+            text.append(snippet.description, Style(color=MUTED))
+            if row < len(self.matches) - 1:
+                text.append("\n")
+        return text
 
 class PixelButton(Button):
     """Square button with a hard 'shadow' on the bottom/right edge."""
@@ -2403,11 +2654,26 @@ class SettingsPage(Vertical):
         color: #cdd7ea;
     }
     .set-row:hover { background: #16233d; border: round #5b9bf5; }
+    .set-row-group { height: 3; width: 1fr; }
+    .set-chip {
+        width: 1fr;
+        height: 3;
+        padding: 0 1;
+        background: #0f1626;
+        border: round #243049;
+        content-align: left middle;
+        color: #cdd7ea;
+    }
     .set-group {
         height: 3;
         padding: 1 0 0 0;
         color: #7d90b8;
         text-style: bold;
+    }
+    #set-snip-hint {
+        height: auto;
+        padding: 0 0 1 0;
+        color: #7d90b8;
     }
     #set-hint {
         height: auto;
@@ -2446,6 +2712,19 @@ class SettingsPage(Vertical):
         yield Static("Reset progress          clear levels and hints",
                      id="set-reset", classes="set-row")
 
+        yield Static("SNIPPETS", classes="set-group")
+        # three columns: the list is long and the page is a single scroll
+        for start in range(0, len(SNIPPETS), 3):
+            with Horizontal(classes="set-row-group"):
+                for snippet in SNIPPETS[start:start + 3]:
+                    yield Static(
+                        f"{snippet.prefix:<9} {snippet.description}",
+                        classes="set-chip",
+                    )
+        yield Static(
+            "Type a prefix in the editor, then Tab or Enter to expand.",
+            id="set-snip-hint",
+        )
         yield Static("Click a row to change it. Esc returns to the lesson.",
                      id="set-hint")
 
@@ -3040,6 +3319,8 @@ class PyLearnApp(App):
         editor = self.query_one("#editor", PyTextArea)
         editor.text = lesson.start
         editor.move_cursor((max(0, len(lesson.start.splitlines()) - 1), 0))
+        if editor._menu is not None:
+            editor._menu.hide()
         self.query_one("#ex-title", Label).update(
             f"{self._module_of(level).title}"
         )
