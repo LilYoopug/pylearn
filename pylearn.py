@@ -1074,14 +1074,27 @@ _MEMBER_TABLE: dict[str, tuple[str, ...]] = {
     "tuple": ("count", "index"),
 }
 
+#: Builtin callables and their parameters, in the order Python documents them.
+_BUILTIN_SIGNATURES: dict[str, tuple[str, ...]] = {
+    "abs": ("x",), "all": ("iterable",), "any": ("iterable",),
+    "bool": ("x",), "callable": ("object",), "chr": ("i",), "ord": ("c",),
+    "dict": ("**kwargs",), "divmod": ("a", "b"), "enumerate": ("iterable", "start"),
+    "filter": ("function", "iterable"), "float": ("x",), "format": ("value", "format_spec"),
+    "frozenset": ("iterable",), "getattr": ("object", "name", "default"),
+    "hasattr": ("object", "name"), "hash": ("object",), "id": ("object",),
+    "input": ("prompt",), "int": ("x", "base"), "isinstance": ("object", "classinfo"),
+    "issubclass": ("cls", "classinfo"), "iter": ("iterable",), "len": ("s",),
+    "list": ("iterable",), "map": ("function", "iterable"),
+    "max": ("iterable", "key"), "min": ("iterable", "key"), "next": ("iterator", "default"),
+    "open": ("file", "mode"), "pow": ("base", "exp"), "print": ("*values", "sep", "end"),
+    "range": ("start", "stop", "step"), "repr": ("object",), "reversed": ("seq",),
+    "round": ("number", "ndigits"), "set": ("iterable",), "setattr": ("object", "name", "value"),
+    "sorted": ("iterable", "key", "reverse"), "str": ("object",), "sum": ("iterable", "start"),
+    "tuple": ("iterable",), "type": ("object",), "zip": ("*iterables",),
+}
+
 #: Names typed in a lesson constantly; offered before user symbols.
-_BUILTINS: tuple[str, ...] = (
-    "abs", "all", "any", "bool", "dict", "enumerate", "filter", "float",
-    "format", "frozenset", "getattr", "hasattr", "input", "int", "isinstance",
-    "iter", "len", "list", "map", "max", "min", "object", "open", "ord",
-    "print", "range", "repr", "reversed", "round", "set", "setattr", "sorted",
-    "str", "sum", "super", "tuple", "type", "zip",
-)
+_BUILTINS: tuple[str, ...] = tuple(_BUILTIN_SIGNATURES)
 
 _KEYWORDS: tuple[str, ...] = (
     "and", "as", "assert", "async", "await", "break", "class", "continue",
@@ -1098,6 +1111,16 @@ class Completion:
     label: str
     kind: str
     detail: str = ""
+    params: tuple[str, ...] = ()
+
+    @property
+    def callable(self) -> bool:
+        """Whether accepting this should write `name()` rather than `name`.
+
+        Mirrors `python.analysis.completeFunctionParens` in Pylance: functions
+        and methods get their parentheses, variables and classes do not.
+        """
+        return self.kind in ("def", "fn", "mth", "builtin")
 
     @property
     def icon(self) -> str:
@@ -1112,12 +1135,14 @@ class SymbolIndex:
         self.source = source
         self.names: dict[str, Completion] = {}
         self.members: dict[str, list[Completion]] = {}
+        self.signatures: dict[str, tuple[str, ...]] = {}
         self._tree: ast.AST | None = None
         self._reindex()
 
     def _reindex(self) -> None:
         self.names.clear()
         self.members.clear()
+        self.signatures.clear()
         self._tree = self._parse(self.source)
         if self._tree is None:
             return
@@ -1184,6 +1209,7 @@ class SymbolIndex:
                                 self._members_for(leaf.id, item.context_expr)
             elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 self._add(node.name, "def", _signature(node))
+                self.signatures[node.name] = tuple(_param_names(node))
                 for arg in _all_args(node.args):
                     self._add(arg.arg, "variable", "parameter")
             elif isinstance(node, ast.ClassDef):
@@ -1192,7 +1218,11 @@ class SymbolIndex:
                     if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):
                         if not child.name.startswith("_"):
                             self.members.setdefault(node.name, []).append(
-                                Completion(child.name, "mth", _signature(child))
+                                Completion(child.name, "mth", _signature(child),
+                                           tuple(_param_names(child)))
+                            )
+                            self.signatures[f"{node.name}.{child.name}"] = tuple(
+                                _param_names(child)
                             )
             elif isinstance(node, ast.Import):
                 for alias in node.names:
@@ -1242,8 +1272,10 @@ class SymbolIndex:
         found = [c for name, c in self.names.items()
                  if name.lower().startswith(prefix)]
         found.sort(key=lambda c: (c.kind == "variable", len(c.label)))
-        found += [Completion(b, "builtin") for b in _BUILTINS
-                  if b.startswith(prefix)]
+        found += [
+            Completion(b, "builtin", _builtin_detail(b), _BUILTIN_SIGNATURES[b])
+            for b in _BUILTINS if b.startswith(prefix)
+        ]
         found += [Completion(k, "keyword") for k in _KEYWORDS
                   if k.startswith(prefix)]
         return found[:limit]
@@ -1275,6 +1307,11 @@ class SymbolIndex:
         return []
 
 
+def _builtin_detail(name: str) -> str:
+    params = _BUILTIN_SIGNATURES.get(name, ())
+    return f"({', '.join(params)})" if params else ""
+
+
 def _all_args(args: ast.arguments) -> list[ast.arg]:
     out = list(args.posonlyargs) + list(args.args) + list(args.kwonlyargs)
     if args.vararg:
@@ -1286,6 +1323,11 @@ def _all_args(args: ast.arguments) -> list[ast.arg]:
 
 def _signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
     """`name(a, b=1)` — enough to recognise the call without reading the body."""
+    return f"({', '.join(_param_names(node))})"
+
+
+def _param_names(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
+    """Parameter names with their defaults folded in, for signature help."""
     parts: list[str] = []
     args = node.args
     positional = list(args.posonlyargs) + list(args.args)
@@ -1298,7 +1340,7 @@ def _signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
         parts.append(arg.arg if default is None else f"{arg.arg}=…")
     if args.kwarg:
         parts.append(f"**{args.kwarg.arg}")
-    return f"({', '.join(parts)})"
+    return parts
 
 
 def _describe_value(value: ast.AST) -> str:
@@ -1352,6 +1394,9 @@ class PyTextArea(TextArea):
         self._word = ""
         self._prefix = ""          # the expression the popup is describing
         self._attribute = False    # True while completing after a dot
+        self._signature = ""       # the parameter hint, when inside a call
+        self._signature_params: tuple[str, ...] = ()
+        self._signature_index = 0
 
     # -- IntelliSense ---------------------------------------------------
     @property
@@ -1418,26 +1463,119 @@ class PyTextArea(TextArea):
                 return
             matches = self._index.suggest(partial)
 
-        # a single exact match is not worth a popup
-        if not matches or (len(matches) == 1 and matches[0].label == partial):
+        # A row identical to what is already typed does nothing when picked,
+        # so drop it: `import pri` must not offer `pri` back.
+        matches = [c for c in matches if c.label != partial]
+
+        if not matches:
             self.menu.hide()
             return
         self.menu.show(matches, 0)
         self._place_menu()
+
+    def _in_no_parens_context(self) -> bool:
+        """Where Pylance deliberately skips the parentheses.
+
+        Inside an `import`, a type annotation or a decorator a call is not
+        what is wanted, so `print` there stays `print`.
+        """
+        row, column = self.cursor_location
+        line = self.document.get_line(row)
+        if line.lstrip().startswith(("import ", "from ")):
+            return True
+        if line.lstrip().startswith("@"):
+            return True
+        # An annotation, not a call. Checked from the start of the line so it
+        # still matches while the word itself is being completed: the text
+        # before the caret is `x: pri`, and `pri` has not been replaced yet.
+        before = line[:column]
+        if re.search(r":\s*[A-Za-z_][A-Za-z0-9_.]*$", before):
+            return True
+        # `def f(x: int)` — the annotation sits inside the def's parentheses
+        return bool(re.match(r"\s*def\s+\w+\s*\([^)]*:\s*[A-Za-z_.]*$", line))
 
     def apply_completion(self) -> None:
         completion = self.menu.current()
         if completion is None:
             return
         row, column = self.cursor_location
+        # decide *before* removing the typed word: the annotation check needs
+        # to see `x: pri`, and after the delete it would only see `x: `
+        wants_parens = completion.callable and not self._in_no_parens_context()
         self.delete((row, column - len(self._word)), (row, column))
-        self.insert(completion.label)
+
+        # `print` becomes `print(|)` — cursor between the parens, ready for
+        # arguments, exactly like completeFunctionParens in Pylance.
+        if wants_parens:
+            self.insert(f"{completion.label}()")
+            self.move_cursor((row, column - len(self._word) + len(completion.label) + 1))
+        else:
+            self.insert(completion.label)
         self.menu.hide()
+        self._signature = ""
+        self._signature_index = 0
+        self.refresh_signature()
 
     def move_suggestion(self, delta: int) -> None:
         menu = self.menu
         menu.show(menu.matches, (menu.index + delta) % len(menu.matches))
         self._place_menu()
+
+    # -- signature help -------------------------------------------------
+    def _call_under_cursor(self) -> tuple[str, int] | None:
+        """The call the caret sits inside, and which argument it is on.
+
+        Returns `("print", 0)` while typing the first argument of `print(`.
+        Scanning is done by hand because the document is usually not valid
+        Python yet — `print(` on its own is a syntax error.
+        """
+        row, column = self.cursor_location
+        line = self.document.get_line(row)[:column]
+        depth = 0
+        index = 0
+        for position in range(len(line) - 1, -1, -1):
+            char = line[position]
+            if char in ")]}":
+                depth += 1
+            elif char in "([{":
+                if depth == 0:
+                    if char != "(":
+                        return None
+                    head = re.search(r"([A-Za-z_][A-Za-z0-9_.]*)\s*$", line[:position])
+                    if not head:
+                        return None
+                    return head.group(1), index
+                depth -= 1
+            elif char == "," and depth == 0:
+                index += 1
+        return None
+
+    def refresh_signature(self) -> None:
+        """Show the parameters of the call the caret is in."""
+        call = self._call_under_cursor()
+        if call is None:
+            self._signature = ""
+            try:
+                self.app.query_one("#signature", SignatureHint).hide()
+            except Exception:
+                pass
+            return
+        name, index = call
+        params = self._index.signatures.get(name)
+        if params is None:
+            params = _BUILTIN_SIGNATURES.get(name)
+        if not params:
+            self._signature = ""
+            return
+        self._signature = f"{name}({', '.join(params)})"
+        self._signature_index = min(index, len(params) - 1)
+        self._signature_params = params
+        try:
+            self.app.query_one("#signature", SignatureHint).show(
+                self._signature, params, self._signature_index
+            )
+        except Exception:
+            pass
 
     # -- events ---------------------------------------------------------
     async def _on_key(self, event) -> None:
@@ -1473,6 +1611,7 @@ class PyTextArea(TextArea):
         await super()._on_key(event)
         self.reindex()
         self.refresh_completions()
+        self.refresh_signature()
 
     def on_blur(self) -> None:
         if self._menu is not None:
@@ -1525,6 +1664,50 @@ def _token_role(ttype) -> str:
     if ttype in Token.Literal.Number:
         return "number"
     return ""
+
+
+class SignatureHint(Static):
+    """The parameter hint that sits under the caret while inside a call."""
+
+    DEFAULT_CSS = """
+    SignatureHint {
+        height: 1;
+        width: 100%;
+        padding: 0 1;
+        background: #16233d;
+        color: #94a3bd;
+        display: none;
+    }
+    """
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__("", **kwargs)
+        self.signature = ""
+        self.params: tuple[str, ...] = ()
+        self.index = 0
+
+    def show(self, signature: str, params: tuple[str, ...], index: int) -> None:
+        self.signature = signature
+        self.params = params
+        self.index = index
+        self.display = True
+        self.refresh()
+
+    def hide(self) -> None:
+        self.signature = ""
+        self.display = False
+
+    def render(self) -> Text:
+        text = Text(no_wrap=True)
+        text.append("ƒ ", Style(color=GREEN, bold=True))
+        text.append(self.signature, Style(color=MUTED))
+        if self.params:
+            active = self.params[min(self.index, len(self.params) - 1)]
+            text.append("   ▸ ", Style(color=GREEN))
+            text.append(active, Style(color=GREEN, bold=True))
+            text.append(f"  ({self.index + 1}/{len(self.params)})",
+                        Style(color=MUTED))
+        return text
 
 
 class CompletionMenu(Static):
@@ -3484,6 +3667,7 @@ class PyLearnApp(App):
                         show_line_numbers=True,
                         tab_behavior="indent",
                     )
+                    yield SignatureHint(id="signature")
                     with Horizontal(id="actions"):
                         yield PixelButton("⋯", id="more-btn", classes="icon")
                         yield Static("", id="actions-gap")
@@ -3566,6 +3750,10 @@ class PyLearnApp(App):
         editor.reindex()
         if editor._menu is not None:
             editor._menu.hide()
+        try:
+            self.query_one("#signature", SignatureHint).hide()
+        except Exception:
+            pass
         self.query_one("#ex-title", Label).update(
             f"{self._module_of(level).title}"
         )

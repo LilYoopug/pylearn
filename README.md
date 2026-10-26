@@ -96,6 +96,39 @@ What it knows about:
 | `Esc` | Close the popup |
 | `ctrl+space` | Open the list manually |
 
+### Accepting a function writes the parentheses
+
+Like `python.analysis.completeFunctionParens` in Pylance: accepting `print`
+writes `print()` and puts the caret **between** the brackets, ready for
+arguments.
+
+```python
+print(█)
+```
+
+Parentheses are deliberately **not** added inside an `import`, a type
+annotation or a decorator — a call is not what is wanted there:
+
+| you type | you get |
+|----------|---------|
+| `import pri` | `import print` |
+| `x: pri` | `x: print` |
+| `@pri` | `@print` |
+| `print(pri` | `print(print())` |
+
+### Signature help
+
+Inside a call, the parameters are shown under the editor and the active one is
+highlighted. It appears when you type `(`, advances on every `,`, and hides
+when the caret leaves the call:
+
+```
+ƒ print(*values, sep, end)   ▸ sep  (2/3)
+```
+
+Signatures come from the functions defined in your file and from a table of
+Python builtins, so `range(`, `sorted(` and `print(` all explain themselves.
+
 The source is parsed with `ast`, so symbols are read exactly rather than
 guessed with regexes. Code that is still being typed is handled: `names.` and
 unclosed brackets are syntax errors, so the offending lines are dropped and
