@@ -182,6 +182,8 @@ def _blocks(body: str) -> list[Block]:
             if all(line.lstrip().startswith(("- ", "* ")) for line in lines):
                 for line in lines:
                     blocks.append(Block("li", line.lstrip()[2:].strip()))
+            elif _is_table(lines):
+                blocks.append(_table_block(lines))
             else:
                 blocks.append(Block("p", " ".join(l.strip() for l in lines)))
     return blocks
@@ -341,6 +343,64 @@ def _fill(text: str, values: dict, literal: bool = False) -> str:
             return match.group(0)
 
     return _VAR_REF.sub(replace, text)
+
+
+def _is_table(lines: list[str]) -> bool:
+    """A GitHub-style table: a header row, a rule, then rows."""
+    if len(lines) < 3:
+        return False
+    if not all(l.strip().startswith("|") for l in lines[:3]):
+        return False
+    rule = lines[1].strip()
+    return bool(re.fullmatch(r"\|[\s:|-]+\|", rule)) and "-" in rule
+
+
+def _split_row(line: str) -> list[str]:
+    """Cells of a `| a | b |` row, keeping escaped pipes inside the cell."""
+    body = line.strip()
+    if body.startswith("|"):
+        body = body[1:]
+    if body.endswith("|"):
+        body = body[:-1]
+    cells: list[str] = []
+    current: list[str] = []
+    escaped = False
+    for char in body:
+        if escaped:
+            current.append(char)
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif char == "|":
+            cells.append("".join(current).strip())
+            current = []
+        else:
+            current.append(char)
+    cells.append("".join(current).strip())
+    return cells
+
+
+def _table_block(lines: list[str]) -> Block:
+    """Store a table as `header | cell | cell` lines plus its alignment.
+
+    The renderer draws the box, so the source file only has to say what the
+    data is — a table written by hand in ASCII is unreadable in the `.md` and
+    has to be re-aligned whenever a word changes.
+    """
+    header = _split_row(lines[0])
+    align = []
+    for cell in _split_row(lines[1]):
+        left = cell.startswith(":")
+        right = cell.endswith(":")
+        align.append("center" if left and right else
+                     "right" if right else "left")
+    rows = [_split_row(l) for l in lines[2:] if l.strip().startswith("|")]
+    payload = "\x1f".join([
+        "|".join(header),
+        ",".join(align),
+        "\x1e".join("|".join(r) for r in rows),
+    ])
+    return Block("table", payload)
 
 
 def _render_block(block: Block, values: dict) -> Block:

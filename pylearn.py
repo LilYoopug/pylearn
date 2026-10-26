@@ -1796,6 +1796,130 @@ def _token_role(ttype) -> str:
     return ""
 
 
+class TableView(Static):
+    """A markdown table drawn as a proper box.
+
+    The `.md` keeps a readable pipe table; the box is built here, with the
+    columns sized to their content and each cell's inline code still coloured.
+    """
+
+    DEFAULT_CSS = """
+    TableView {
+        height: auto;
+        width: auto;
+        padding: 1 0;
+        overflow-x: hidden;
+        overflow-y: hidden;
+    }
+    """
+
+    def __init__(self, payload: str, markup_for, **kwargs) -> None:
+        super().__init__("", **kwargs)
+        self._markup = markup_for
+        header, align, rows = payload.split("\x1f")
+        self.header = header.split("|")
+        self.align = align.split(",")
+        self.rows = [r.split("|") for r in rows.split("\x1e") if r]
+
+    def _plain(self, cell: str) -> int:
+        """Visible width of a cell, as it will appear once rendered."""
+        return self._markup(cell).cell_len
+
+    def get_content_height(self, container, viewport, width: int) -> int:
+        """The box is exactly as tall as its rows plus the borders."""
+        return len(self.rows) + 3 + 2      # +2 for the padding above/below
+
+    def get_content_width(self, container, viewport) -> int:
+        """As wide as the widest row, so the right border is never cut."""
+        widths = [self._plain(h) for h in self.header]
+        for row in self.rows:
+            for i, cell in enumerate(row):
+                if i < len(widths):
+                    widths[i] = max(widths[i], self._plain(cell))
+        return sum(w + 2 for w in widths) + len(widths) + 1
+
+    def _column_widths(self, available: int | None = None) -> list[int]:
+        """Natural widths, shrunk proportionally if the pane is too narrow.
+
+        A table that cannot fit is worse than a table with a narrow column, so
+        the widest column gives up space first rather than pushing the right
+        border off the pane.
+        """
+        columns = len(self.header)
+        widths = [max(self._plain(self.header[i]),
+                      *(self._plain(r[i]) for r in self.rows if i < len(r)))
+                  for i in range(columns)]
+        if available is None:
+            return widths
+        # A column costs its text, two padding spaces and one border. One more
+        # column of slack keeps the closing border inside the pane when the
+        # scrollbar takes a column.
+        budget = available - (columns + 1) - 2 * columns - 1
+        if sum(widths) <= budget:
+            return widths
+        # Shrink the widest column first, but never below its header, so the
+        # table stays readable instead of truncating every row.
+        floors = [max(4, self._plain(h)) for h in self.header]
+        while sum(widths) > budget and any(
+            w > f for w, f in zip(widths, floors)
+        ):
+            widest = max(
+                (i for i in range(columns) if widths[i] > floors[i]),
+                key=lambda i: widths[i],
+            )
+            widths[widest] -= 1
+        return widths
+
+    def render(self) -> Text:
+        columns = len(self.header)
+        # The widget is laid out from its own preferred width, so `self.size`
+        # is whatever we asked for — not what the pane can actually hold. The
+        # pane is the real constraint.
+        available = self.parent.size.width if self.parent is not None else 0
+        if not available:
+            available = self.size.width
+        widths = self._column_widths(available or None)
+
+        text = Text(no_wrap=True)
+        rule = Style(color=LINE)
+        head = Style(color=TEXT, bold=True)
+
+        def pad(cell: str, width: int, index: int) -> tuple[str, str]:
+            visible = self._plain(cell)
+            gap = max(0, width - visible)
+            side = self.align[index] if index < len(self.align) else "left"
+            if side == "right":
+                return " " * gap, ""
+            if side == "center":
+                return " " * (gap // 2), " " * (gap - gap // 2)
+            return "", " " * gap
+
+        def draw_row(cells: list[str], style: Style | None) -> None:
+            text.append("│", rule)
+            for index in range(columns):
+                cell = cells[index] if index < len(cells) else ""
+                left, right = pad(cell, widths[index], index)
+                text.append(" " + left, Style())
+                rendered = Text(cell) if style is not None else self._markup(cell)
+                if rendered.cell_len > widths[index]:
+                    rendered = rendered[: widths[index]]
+                text.append_text(rendered)
+                text.append(right + " ", Style())
+                text.append("│", rule)
+            text.append("\n")
+
+        top = "┌" + "┬".join("─" * (w + 2) for w in widths) + "┐"
+        mid = "├" + "┼".join("─" * (w + 2) for w in widths) + "┤"
+        bottom = "└" + "┴".join("─" * (w + 2) for w in widths) + "┘"
+        text.append(top + "\n", rule)
+        draw_row(self.header, head)
+        text.append(mid + "\n", rule)
+        for row in self.rows:
+            draw_row(row, None)
+        text.append(bottom, rule)
+        return text
+
+
 class SignatureHint(Static):
     """The parameter hint that sits under the caret while inside a call."""
 
@@ -3652,9 +3776,9 @@ class PyLearnApp(App):
     /* ───────── body split ───────── */
     #body {{ height: 1fr; }}
 
-    #lesson {{ width: 38%; min-width: 34; background: {BG}; border-right: thick {LINE};
+    #lesson {{ width: 42%; min-width: 34; background: {BG}; border-right: thick {LINE};
                padding: 0 2 1 2; }}
-    .prose {{ margin-top: 1; color: {TEXT}; }}
+    .prose {{ margin-top: 1; color: {TEXT}; height: auto; }}
     .bullet {{ margin: 0 0 0 3; color: {TEXT}; }}
     #sprites {{ margin-top: 1; height: auto; }}
 
@@ -4006,10 +4130,17 @@ class PyLearnApp(App):
                 art = [SPRITES[n] for n in names if n in SPRITES]
                 if art:
                     yield Static(sprite_row(art), classes="sprites")
+            elif block.kind == "table":
+                yield TableView(block.text, self._markup_text)
             elif block.kind == "li":
                 yield Static(f"•  {block.text}", classes="bullet")
             else:
-                yield Static(self._markup(block.text), classes="prose")
+                yield Static(Text.from_markup(self._markup(block.text)),
+                             classes="prose")
+
+    def _markup_text(self, cell: str) -> Text:
+        """`_markup` for a single cell, as a Text that can be appended."""
+        return Text.from_markup(self._markup(cell))
 
     def _markup(self, text: str) -> str:
         """Markdown-ish inline formatting -> Textual console markup.
