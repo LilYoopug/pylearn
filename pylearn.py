@@ -1429,18 +1429,44 @@ class PyTextArea(TextArea):
         return "", partial
 
     def _place_menu(self) -> None:
-        """Park the popup just under the caret, clamped to the editor."""
+        """Put the popup where VS Code would: under the caret, or above it.
+
+        The height is whatever space is actually left in the terminal, so the
+        list can never spill over the terminal pane or the buttons below the
+        editor. If neither side has room, it shrinks rather than covering the
+        interface.
+        """
         menu = self.menu
+        if not menu.matches:
+            return
         row, column = self.cursor_location
         offset = self.scroll_offset
         gutter = self.gutter_width
+
+        screen = self.screen.region
         x = self.region.x + gutter + column - offset.x
-        y = self.region.y + row - offset.y + 1
-        width = min(48, self.size.width)
-        height = len(menu.matches) + 2
-        x = max(self.region.x, min(x, self.region.right - width))
-        y = max(self.region.y, min(y, self.region.bottom - height))
-        menu.styles.offset = (x - self.screen.region.x, y - self.screen.region.y)
+        below_y = self.region.y + row - offset.y + 1
+
+        # chrome is the border (2) plus the scroll counter line (1)
+        chrome = 3
+        space_below = max(0, screen.bottom - below_y - 1)
+        space_above = max(0, (self.region.y + row - offset.y) - screen.y - 1)
+
+        # prefer below the caret; flip up when there is clearly more room
+        if space_below >= 4 or space_below >= space_above:
+            available, anchor, upward = space_below, below_y, False
+        else:
+            available, anchor, upward = space_above, self.region.y + row - offset.y, True
+
+        rows = max(1, min(len(menu.matches), available - chrome))
+        menu.set_rows(rows)
+        height = min(len(menu.visible()), rows) + chrome
+
+        width = min(44, max(18, self.size.width))
+        x = max(screen.x, min(x, screen.right - width))
+        y = anchor - height if upward else anchor
+        y = max(screen.y, min(y, screen.bottom - height))
+        menu.styles.offset = (x - screen.x, y - screen.y)
 
     def refresh_completions(self, *, force: bool = False) -> None:
         """Decide what the popup should show for the caret's position."""
@@ -1711,15 +1737,18 @@ class SignatureHint(Static):
 
 
 class CompletionMenu(Static):
-    """A VS Code style completion popup: a small list under the caret."""
+    """Completion popup that behaves like the one in VS Code.
+
+    It shows as many rows as the space around the caret allows and scrolls
+    through the rest, instead of drawing a fixed block over the interface.
+    """
 
     DEFAULT_CSS = """
     CompletionMenu {
         layer: overlay;
         width: auto;
-        max-width: 52;
+        max-width: 44;
         height: auto;
-        max-height: 11;
         background: #1b2436;
         border: round #3b4a6b;
         padding: 0 1;
@@ -1731,11 +1760,15 @@ class CompletionMenu(Static):
         super().__init__("", **kwargs)
         self.matches: list[Completion] = []
         self.index = 0
+        self.view = 0          # first visible row
+        self.rows = 8          # how many rows fit right now
 
+    # -- content --------------------------------------------------------
     def show(self, matches: list[Completion], index: int = 0) -> None:
         self.matches = matches
         self.index = max(0, min(index, len(matches) - 1))
         self.display = bool(matches)
+        self._clamp_view()
         self.refresh(layout=True)
 
     def hide(self) -> None:
@@ -1749,28 +1782,47 @@ class CompletionMenu(Static):
     def current(self) -> "Completion | None":
         return self.matches[self.index] if self.matches else None
 
+    def set_rows(self, rows: int) -> None:
+        """How many rows fit; called when the popup is placed."""
+        self.rows = max(1, min(rows, len(self.matches) or 1))
+        self._clamp_view()
+        self.refresh(layout=True)
+
+    def _clamp_view(self) -> None:
+        """Keep the selected row inside the visible window."""
+        if self.index < self.view:
+            self.view = self.index
+        elif self.index >= self.view + self.rows:
+            self.view = self.index - self.rows + 1
+        self.view = max(0, min(self.view, max(0, len(self.matches) - self.rows)))
+
+    def visible(self) -> list[Completion]:
+        return self.matches[self.view:self.view + self.rows]
+
     def render(self) -> Text:
         text = Text(no_wrap=True)
-        width = max((len(c.label) for c in self.matches), default=8)
-        for row, completion in enumerate(self.matches):
+        rows = self.visible()
+        width = max((len(c.label) for c in rows), default=8)
+        width = min(width, 18)
+        for offset, completion in enumerate(rows):
+            row = self.view + offset
             selected = row == self.index
-            if selected:
-                text.append("▸ ", Style(color=GREEN, bold=True))
-            else:
-                text.append("  ", Style())
-            text.append(
-                f"{completion.icon} ",
-                Style(color=GREEN if selected else MUTED),
-            )
-            text.append(
-                f"{completion.label:<{width}}",
-                Style(color=GREEN if selected else TEXT, bold=selected),
-            )
+            text.append("▸ " if selected else "  ",
+                        Style(color=GREEN, bold=True))
+            text.append(f"{completion.icon} ",
+                        Style(color=GREEN if selected else MUTED))
+            text.append(f"{completion.label:<{width}}",
+                        Style(color=GREEN if selected else TEXT, bold=selected))
             if completion.detail:
                 text.append("  ", Style())
                 text.append(completion.detail, Style(color=MUTED))
-            if row < len(self.matches) - 1:
+            if offset < len(rows) - 1:
                 text.append("\n")
+        # a scrollbar on the right, the way VS Code hints at more rows
+        if len(self.matches) > self.rows:
+            first = self.view + 1
+            last = min(self.view + self.rows, len(self.matches))
+            text.append(f"  {first}-{last}/{len(self.matches)}", Style(color=MUTED))
         return text
 
 
@@ -3365,6 +3417,9 @@ class PyLearnApp(App):
     ENABLE_COMMAND_PALETTE = False
     HORIZONTAL_BREAKPOINTS = [(0, "-narrow"), (90, "-wide")]
 
+    #: Below this height the stacked layout has to give the editor priority.
+    VERTICAL_BREAKPOINTS = [(0, "-short"), (30, "-tall")]
+
     BINDINGS = [
         Binding("ctrl+r,f5", "run_code", "Run", priority=True),
         Binding("ctrl+s", "submit_answer", "Submit", priority=True),
@@ -3611,6 +3666,16 @@ class PyLearnApp(App):
     Screen.-narrow #lesson {{ width: 100%; min-width: 0; height: 40%; border-right: none;
                               border-bottom: thick {LINE}; }}
     Screen.-narrow #workspace {{ width: 100%; height: 1fr; }}
+    /* A short terminal cannot afford both panes stacked: the lesson keeps a
+       sliver and the editor keeps enough rows to actually type in. */
+    Screen.-short #lesson {{ height: 6; }}
+    Screen.-short #editor-wrap {{ height: 1fr; min-height: 7; }}
+    Screen.-short #term-wrap {{ height: 6; }}
+    Screen.-short #bottom {{ height: 3; }}
+    /* the button row is 5 rows tall normally; on a short terminal it costs
+       the editor half its height, so squeeze it to one */
+    Screen.-short #actions {{ height: 3; }}
+    Screen.-short #actions PixelButton {{ min-width: 8; padding: 0 1; }}
     Screen.-narrow #crumbs {{ display: none; }}
     Screen.-narrow PixelButton {{ min-width: 8; padding: 0 1; margin-left: 1; }}
     """

@@ -96,6 +96,11 @@ What it knows about:
 | `Esc` | Close the popup |
 | `ctrl+space` | Open the list manually |
 
+The popup sizes itself to the space left around the caret: it opens below the
+line, flips above when there is more room there, and shows as many rows as fit
+instead of drawing a fixed block over the terminal. A counter (`1-5/11`) says
+how many more there are, and the list scrolls with `↑` `↓`.
+
 ### Accepting a function writes the parentheses
 
 Like `python.analysis.completeFunctionParens` in Pylance: accepting `print`
