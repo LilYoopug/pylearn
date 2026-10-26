@@ -1,7 +1,7 @@
 ---
 order: 2
 exercise: 12
-title: Grades
+title: Nilai Siswa
 module: 3
 check: strict
 vars: |
@@ -11,36 +11,25 @@ expect: "{{result}}"
 ---
 
 <learn>
-A single comparison is often enough:
+Kamu bisa membandingkan angka dengan `>=`, `<=`, `>` dan `<`.
 
 ```python
-grade = 58
-if grade >= 55:
-    print('You passed.')
-else:
-    print('You failed.')
+if score >= 55:
+    print('Lulus')
 ```
 
-`>=` means "greater than or equal to". Using `>` instead would fail a score of
-exactly 55, which is a classic off-by-one bug.
+`elif` dipakai saat ada lebih dari dua kemungkinan.
 </learn>
 
 <instructions>
-A student scored **{{grade}}** out of 100. The pass mark is **55**.
+Seorang siswa mendapat nilai **{{grade}}** dari 100. Batas kelulusan adalah
+**55**.
 
-Print `You passed.` or `You failed.` as appropriate.
-
-```python
-grade = {{grade}}
-if grade >= 55:
-    print('You passed.')
-else:
-    print('You failed.')
-```
+Cetak `You passed.` atau `You failed.` sesuai kondisinya.
 </instructions>
 
 <help>
-<hint>Use `>=` so a score of exactly 55 still passes.</hint>
+<hint>Gunakan satu perbandingan saja: kalau nilainya 55 atau lebih, cetak pesan lulus; sisanya gagal.</hint>
 <solution>
 grade = {{grade}}
 if grade >= 55:

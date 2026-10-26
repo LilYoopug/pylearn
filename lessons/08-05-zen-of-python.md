@@ -1,7 +1,7 @@
 ---
 order: 5
 exercise: 43
-title: Zen of Python
+title: Zen Python
 module: 8
 check: output
 vars: |
@@ -13,26 +13,14 @@ expect: |
 ---
 
 <learn>
-Python ships with a module for almost everything, and one of them holds the
-language's design philosophy:
+Python punya puisi singkat berisi prinsip desainnya, bernama *The Zen of
+Python*.
 
-```python
-import this
-```
-
-That prints *The Zen of Python*. You can also reach it programmatically:
-
-```python
-import this
-print(this.s[:80])
-```
-
-You have now written real Python — imports, loops, functions, classes and
-modules. Go build something.
+Kamu bisa melihatnya sendiri dengan menjalankan `import this` di Python.
 </learn>
 
 <instructions>
-Print the first **{{count}}** lines of the Zen of Python, one per line:
+Cetak **{{count}}** baris pertama Zen of Python, satu per baris:
 
 ```output
 Beautiful is better than ugly.
@@ -42,7 +30,7 @@ Simple is better than complex.
 </instructions>
 
 <help>
-<hint>Three separate `print()` calls is the simplest correct answer here.</hint>
+<hint>Tiga pemanggilan `print()`, satu untuk tiap baris, persis seperti contoh.</hint>
 <solution>
 print('Beautiful is better than ugly.')
 print('Explicit is better than implicit.')

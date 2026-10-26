@@ -1,7 +1,7 @@
 ---
 order: 2
 exercise: 40
-title: Solar System
+title: Tata Surya
 module: 8
 check: strict
 vars: |
@@ -13,43 +13,26 @@ expect: |
 ---
 
 <learn>
-Importing your **own** module works the same way: put the code in a `.py`
-file, then `import` it by filename (without the `.py`).
+**Dictionary** menyimpan pasangan kunci dan nilai.
 
 ```python
-# planets.py
-DATA = {'Earth': 149.6}
-
-# main.py
-import planets
-print(planets.DATA['Earth'])
+jarak = {'Bumi': 149.6, 'Mars': 227.9}
+print(jarak['Mars'])
 ```
 
-A dictionary is the natural fit for "look something up by name":
-
-```python
-lookup = {'Mercury': 57.9}
-print(lookup['Mercury'])
-```
+Nilainya diambil dengan kunci di dalam tanda kurung siku.
 </learn>
 
 <instructions>
-Using a dictionary of distances, look up **{{planet}}** and print:
+Dengan dictionary berisi jarak, cari **{{planet}}** dan cetak:
 
 ```output
 {{planet}} is {{distance}} million km from the Sun.
 ```
-
-```python
-distances = {'Mercury': 57.9, 'Venus': 108.2, 'Earth': 149.6,
-             'Mars': 227.9, 'Jupiter': 778.6}
-planet = '{{planet}}'
-print(f'{planet} is {distances[planet]} million km from the Sun.')
-```
 </instructions>
 
 <help>
-<hint>Index the dictionary with the planet name to get its distance.</hint>
+<hint>Ambil nilai dari dictionary memakai nama planet sebagai kunci, lalu susun kalimatnya.</hint>
 <solution>
 distances = {'Mercury': 57.9, 'Venus': 108.2, 'Earth': 149.6,
              'Mars': 227.9, 'Jupiter': 778.6}

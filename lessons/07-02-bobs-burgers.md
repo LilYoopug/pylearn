@@ -1,7 +1,7 @@
 ---
 order: 2
 exercise: 35
-title: Menu Board
+title: Papan Menu
 module: 7
 check: strict
 vars: |
@@ -12,43 +12,27 @@ expect: |
 ---
 
 <learn>
-A class can also hold **methods** — functions that belong to the instance:
+Selain atribut, class bisa punya **method** — fungsi yang menempel pada objek.
 
 ```python
 class Menu:
-    def __init__(self, item, price):
-        self.item = item
-        self.price = price
-
     def label(self):
         return f'{self.item}: ${self.price}'
 ```
 
-The method takes `self` so it can read the instance's own attributes. Call it
-with `menu.label()` — no argument, Python passes `self` for you.
+Method selalu menerima `self` sebagai parameter pertama.
 </learn>
 
 <instructions>
-Write a class `Menu` with `__init__(self, item, price)` and a method
-`label(self)` that returns `"{item}: ${price}"`.
+Tulis class `Menu` dengan `__init__(self, item, price)` dan method
+`label(self)` yang mengembalikan `"{item}: ${price}"`.
 
-Make one entry for **{{item}}** at **{{price}}** dollars and print its label.
-
-```python
-class Menu:
-    def __init__(self, item, price):
-        self.item = item
-        self.price = price
-
-    def label(self):
-        return f'{self.item}: ${self.price}'
-
-print(Menu('{{item}}', {{price}}).label())
-```
+Buat satu entri untuk **{{item}}** seharga **{{price}}** dolar dan cetak
+label-nya.
 </instructions>
 
 <help>
-<hint>The method returns the string; `print()` at the call site shows it.</hint>
+<hint>Method `label` mengembalikan f-string dari kedua atribut. Panggil `label()` setelah objek dibuat.</hint>
 <solution>
 class Menu:
     def __init__(self, item, price):

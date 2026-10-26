@@ -1,7 +1,7 @@
 ---
 order: 4
 exercise: 25
-title: Reading
+title: Daftar Bacaan
 module: 5
 check: strict
 vars: |
@@ -11,36 +11,28 @@ expect: "{{target}}"
 ---
 
 <learn>
-Lists keep their order, so the first thing you added stays first. That makes
-them natural for a reading list: the order is the queue.
-
-To find something without knowing its position:
+Elemen list bisa diambil lewat **indeks**, dan penghitungannya mulai dari 0.
 
 ```python
-books = ['Dune', 'Emma']
-print('Dune' in books)        # True
-print(books.index('Emma'))    # 1
+buku = ['Dune', 'Emma', 'Beloved']
+print(buku[0])   # Dune
+print(buku[1])   # Emma
 ```
 
-`index()` gives you the position; `in` just tells you yes or no.
+Indeks negatif menghitung dari belakang: `buku[-1]` adalah elemen terakhir.
 </learn>
 
 <instructions>
-Your reading list holds:
+Daftar bacaanmu berisi:
 
 {{books}}
 
-Print the **second** book on the list, using its index rather than a hardcoded
-string.
-
-```python
-books = {{books}}
-print(books[1])
-```
+Cetak buku **kedua** pada daftar itu, memakai indeksnya bukan string yang
+ditulis manual.
 </instructions>
 
 <help>
-<hint>Indexing starts at 0, so the second item is at index 1.</hint>
+<hint>Buku kedua ada di indeks 1, karena indeks dimulai dari 0.</hint>
 <solution>
 books = {{books}}
 print(books[1])

@@ -386,29 +386,30 @@ def load_course(folder: str | Path) -> list[CourseModule]:
 #: Module titles live here rather than in the level files: a module is a
 #: grouping, not a lesson, and every level would otherwise repeat it.
 MODULE_TITLES = {
-    1: "First Steps",
-    2: "Values & Maths",
-    3: "Decisions",
-    4: "Repetition",
-    5: "Collections",
-    6: "Functions",
-    7: "Objects",
-    8: "Batteries",
+    1: "Langkah Pertama",
+    2: "Nilai & Matematika",
+    3: "Percabangan",
+    4: "Perulangan",
+    5: "Koleksi Data",
+    6: "Fungsi",
+    7: "Objek",
+    8: "Modul Bawaan",
 }
 
 MODULE_BLURBS = {
-    1: "Your first lines of Python: printing messages and drawing with text.",
-    2: "Store values in names, then do arithmetic on them — including the "
-       "unit conversions you meet every day.",
-    3: 'Teach a program to choose, using comparisons, if / elif / else, and '
-       "the logical operators.",
-    4: "Make Python repeat work for you with while loops, for loops and "
-       "counters.",
-    5: "Keep many values together in a list, then sort, count and walk "
-       "through them.",
-    6: "Write a block of code once, name it, and call it as often as you like.",
-    7: "Define your own types with classes, so your code can model real "
-       "objects and their behaviour.",
-    8: "Reach into Python's standard library and reuse code other people "
-       "already wrote.",
+    1: "Baris pertama Python-mu: mencetak pesan dan menggambar dengan teks.",
+    2: "Simpan nilai di dalam nama, lalu hitung dengan nilai itu — termasuk "
+       "konversi satuan yang kamu temui sehari-hari.",
+    3: "Ajari program memilih, memakai perbandingan, if / elif / else, dan "
+       "operator logika.",
+    4: "Buat Python mengulang pekerjaan untukmu dengan while, for, dan "
+       "penghitung.",
+    5: "Simpan banyak nilai dalam satu list, lalu hitung dan telusuri "
+       "isinya.",
+    6: "Tulis sepotong kode sekali, beri nama, dan panggil sesering yang "
+       "kamu mau.",
+    7: "Definisikan tipe buatanmu sendiri dengan class, supaya kodemu bisa "
+       "memodelkan objek nyata.",
+    8: "Manfaatkan pustaka standar Python dan pakai ulang kode yang sudah "
+       "ditulis orang lain.",
 }

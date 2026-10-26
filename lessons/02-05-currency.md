@@ -1,7 +1,7 @@
 ---
 order: 5
 exercise: 10
-title: Currency
+title: Mata Uang
 module: 2
 check: strict
 vars: |
@@ -13,43 +13,26 @@ expect: "{{total}}"
 ---
 
 <learn>
-Money conversion is just multiplication, once per currency, added together.
+Kamu bisa menyimpan beberapa nilai sekaligus, lalu menjumlahkannya dalam satu
+ekspresi.
 
-Each line below converts one currency into dollars:
-
-```python
-pesos_usd = pesos * 0.00025
-soles_usd = soles * 0.28
-reais_usd = reais * 0.21
-```
-
-You can keep them in separate variables, or combine them into one expression.
-Either is correct — the important part is that each amount is multiplied by
-its own rate before being added.
+Pastikan setiap nilai dikalikan dengan kursnya **sebelum** dijumlahkan.
 </learn>
 
 <instructions>
-You came home with leftover currency:
+Kamu pulang membawa sisa mata uang:
 
-- **{{pesos}}** Mexican pesos (rate `0.00025`)
-- **{{soles}}** Peruvian soles (rate `0.28`)
-- **{{reais}}** Brazilian reais (rate `0.21`)
+- **{{pesos}}** peso Meksiko (kurs `0.00025`)
+- **{{soles}}** sol Peru (kurs `0.28`)
+- **{{reais}}** real Brasil (kurs `0.21`)
 
-Print the total in US dollars.
+Cetak totalnya dalam dolar AS.
 
-```python
-pesos = {{pesos}}
-soles = {{soles}}
-reais = {{reais}}
-total = pesos * 0.00025 + soles * 0.28 + reais * 0.21
-print(total)
-```
-
-Print the value without rounding.
+Cetak nilainya tanpa pembulatan.
 </instructions>
 
 <help>
-<hint>Multiply each amount by its rate, then add the three results together.</hint>
+<hint>Kalikan tiap jumlah dengan kursnya, lalu jumlahkan ketiga hasilnya.</hint>
 <solution>
 pesos = {{pesos}}
 soles = {{soles}}

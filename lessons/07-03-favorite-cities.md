@@ -1,7 +1,7 @@
 ---
 order: 3
 exercise: 36
-title: Favorite Cities
+title: Kota Favorit
 module: 7
 check: strict
 vars: |
@@ -11,43 +11,25 @@ expect: |
 ---
 
 <learn>
-A list of objects is how you model many things of the same kind:
+Kamu bisa membuat banyak objek dari satu class, lalu menyimpannya dalam list.
 
 ```python
-class City:
-    def __init__(self, name):
-        self.name = name
-
-places = [City('Tokyo'), City('Oslo')]
-for place in places:
-    print(place.name)
+places = [City(name) for name in ['Oslo', 'Lima']]
 ```
 
-Everything you already know about lists works — indexing, `len()`, loops,
-comprehensions.
+Ini disebut *list comprehension*: cara ringkas membuat list dari perulangan.
 </learn>
 
 <instructions>
-Create a class `City` holding a `name`, then build a list with these three
-cities:
+Buat class `City` yang menyimpan `name`, lalu bangun list berisi tiga kota ini:
 
 {{cities}}
 
-Print each name on its own line.
-
-```python
-class City:
-    def __init__(self, name):
-        self.name = name
-
-places = [City(name) for name in {{cities}}]
-for place in places:
-    print(place.name)
-```
+Cetak setiap nama pada barisnya sendiri.
 </instructions>
 
 <help>
-<hint>Build the objects in a list, then loop and print `.name`.</hint>
+<hint>Buat list berisi objek `City`, lalu telusuri dan cetak `.name` masing-masing.</hint>
 <solution>
 class City:
     def __init__(self, name):

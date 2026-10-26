@@ -1,7 +1,7 @@
 ---
 order: 3
 exercise: 3
-title: Pattern
+title: Pola Angka
 module: 1
 check: output
 expect: |
@@ -12,15 +12,17 @@ expect: |
 ---
 
 <learn>
-Each `print()` call ends with a new line. So a series of `print()` calls draws
-a series of lines — which means you can draw with text.
+Setiap pemanggilan `print()` diakhiri baris baru. Jadi rangkaian `print()`
+menggambar rangkaian baris — artinya kamu bisa menggambar dengan teks.
 
-The trick to a pattern is the **spaces inside the string**. `'  4 5 6'` is not
-the same string as `'4 5 6'`: the first one starts three columns further right.
+Kunci sebuah pola ada pada **spasi di dalam string**. `'  4 5 6'` bukan
+string yang sama dengan `'4 5 6'`: yang pertama mulai tiga kolom lebih ke
+kanan.
 </learn>
 
 <instructions>
-Print this number triangle, exactly four lines, with the spacing shown:
+Cetak segitiga angka ini, tepat empat baris, dengan spasi seperti yang
+ditunjukkan:
 
 ```output
       1
@@ -29,11 +31,11 @@ Print this number triangle, exactly four lines, with the spacing shown:
 7 8 9 10
 ```
 
-Each line starts one space further left than the line above it.
+Setiap baris mulai satu spasi lebih ke kiri daripada baris di atasnya.
 </instructions>
 
 <help>
-<hint>Four `print()` calls, one per line. Put the leading spaces inside the string, before the first number.</hint>
+<hint>Empat pemanggilan `print()`, satu per baris. Taruh spasi di awal string, sebelum angka pertama.</hint>
 <solution>
 print('      1')
 print('    2 3')

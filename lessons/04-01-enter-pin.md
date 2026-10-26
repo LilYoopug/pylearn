@@ -1,7 +1,7 @@
 ---
 order: 1
 exercise: 17
-title: Enter PIN
+title: Masukkan PIN
 module: 4
 check: strict
 vars: |
@@ -11,26 +11,24 @@ expect: |
 ---
 
 <learn>
-A `while` loop repeats a block **as long as** its condition stays true:
+`while` mengulang blok kode selama kondisinya masih benar.
 
 ```python
-count = 0
-while count < 3:
-    print(count)
-    count = count + 1
+guess = 0
+while guess != pin:
+    guess = guess + 1
 ```
 
-The two parts that matter: something must change inside the loop, and that
-change must eventually make the condition false. Forget the second part and
-the loop never ends.
+Hati-hati: kalau kondisinya tidak pernah berubah menjadi salah, loop akan
+berjalan selamanya.
 </learn>
 
 <instructions>
-Write a `while` loop that keeps asking for the PIN until the correct one,
-**{{pin}}**, is entered. When it matches, print `ACCESS GRANTED`.
+Tulis loop `while` yang terus menebak PIN sampai PIN yang benar, **{{pin}}**,
+tercapai. Saat cocok, cetak `ACCESS GRANTED`.
 
-Because this terminal has no keyboard attached, use a counter instead of
-`input()`: loop while a wrong guess remains, then print the message.
+Karena terminal ini tidak punya papan ketik, pakai penghitung sebagai ganti
+`input()`: ulangi selama tebakan masih salah, lalu cetak pesannya.
 
 ```python
 pin = {{pin}}
@@ -42,7 +40,7 @@ print('ACCESS GRANTED')
 </instructions>
 
 <help>
-<hint>Loop while `guess != pin`. Something inside the loop must move `guess` closer to `pin`, or it never stops.</hint>
+<hint>Kondisi loop-nya `guess != pin`, dan di dalam loop nilainya diperbarui sampai cocok.</hint>
 <solution>
 pin = {{pin}}
 guess = 0

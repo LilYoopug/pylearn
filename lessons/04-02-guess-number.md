@@ -1,7 +1,7 @@
 ---
 order: 2
 exercise: 18
-title: Guess Number
+title: Tebak Angka
 module: 4
 check: strict
 vars: |
@@ -15,38 +15,28 @@ expect: "{{steps}}"
 ---
 
 <learn>
-A counter is the most useful thing to keep inside a loop. Start it at zero,
-add one each pass, and you can report how many times the loop ran:
+Penghitung adalah pola yang sangat sering dipakai: mulai dari nol, tambah satu
+setiap putaran.
 
 ```python
 steps = 0
-while steps < 5:
-    steps = steps + 1
-print(steps)      # 5
-```
-
-`steps += 1` is shorthand for `steps = steps + 1`. Both are correct.
-</learn>
-
-<instructions>
-The secret number is **{{secret}}**. Count how many guesses it takes if you
-guess 1, then 2, then 3, and so on until you hit it.
-
-Print the number of guesses.
-
-```python
-secret = {{secret}}
-steps = 0
-guess = 0
 while guess != secret:
     guess = guess + 1
     steps = steps + 1
-print(steps)
 ```
+
+Di akhir loop, `steps` berisi berapa kali putaran yang sudah terjadi.
+</learn>
+
+<instructions>
+Angka rahasianya adalah **{{secret}}**. Hitung berapa tebakan yang diperlukan
+kalau kamu menebak 1, lalu 2, lalu 3, dan seterusnya sampai kena.
+
+Cetak jumlah tebakannya.
 </instructions>
 
 <help>
-<hint>Start both counters at 0. Increase the guess and the step count inside the loop.</hint>
+<hint>Satu variabel untuk tebakan, satu untuk hitungan. Keduanya bertambah satu tiap putaran.</hint>
 <solution>
 secret = {{secret}}
 steps = 0

@@ -1,7 +1,7 @@
 ---
 order: 4
 exercise: 31
-title: Calculator
+title: Kalkulator
 module: 6
 check: strict
 vars: |
@@ -12,38 +12,27 @@ expect: "{{total}}"
 ---
 
 <learn>
-Functions can take more than one parameter:
+Fungsi bisa menerima **argumen**, yaitu nilai yang kamu berikan saat
+memanggilnya.
 
 ```python
 def add(a, b):
     return a + b
 
-print(add(2, 3))       # 5
+print(add(2, 3))
 ```
 
-Parameters are positional by default — the first value goes to the first name.
-You can also name them at the call site, which makes long calls readable:
-
-```python
-add(a=2, b=3)
-```
+`a` dan `b` disebut parameter; `2` dan `3` adalah argumen yang masuk ke sana.
 </learn>
 
 <instructions>
-Write a function `add(a, b)` that returns the sum of its two arguments.
+Tulis fungsi `add(a, b)` yang mengembalikan jumlah kedua argumennya.
 
-Then add **{{a}}** and **{{b}}** using it and print the result.
-
-```python
-def add(a, b):
-    return a + b
-
-print(add({{a}}, {{b}}))
-```
+Lalu jumlahkan **{{a}}** dan **{{b}}** memakai fungsi itu dan cetak hasilnya.
 </instructions>
 
 <help>
-<hint>Return the sum, do not print it inside the function — the caller prints.</hint>
+<hint>Fungsi menerima dua parameter dan mengembalikan `a + b`. Panggil dengan dua angka.</hint>
 <solution>
 def add(a, b):
     return a + b

@@ -1,7 +1,7 @@
 ---
 order: 4
 exercise: 4
-title: Initials
+title: Inisial
 module: 1
 check: output
 expect: |
@@ -13,16 +13,16 @@ expect: |
 ---
 
 <learn>
-Letters can be drawn with letters. If you line up the same character in a grid,
-your eye fills in the shape — the same way pixel art works.
+Karena spasi dihitung sebagai karakter, kamu bisa memakai `print()` untuk
+menggambar huruf dan bentuk.
 
-A capital **A** is five characters wide: a full row on top and bottom, with a
-gap in the middle two rows.
+Tidak ada trik khusus: yang kamu perlukan hanya beberapa baris teks dengan
+jumlah spasi yang tepat di dalam tanda kutip.
 </learn>
 
 <instructions>
-Draw the letter **A** using only the character `A`, five lines tall and five
-characters wide:
+Gambar huruf **A** hanya dengan karakter `A`, tinggi lima baris dan lebar
+lima karakter:
 
 ```output
 AAAAA
@@ -32,11 +32,11 @@ A   A
 A   A
 ```
 
-Use one `print()` per line, and keep the spaces inside the quotes.
+Pakai satu `print()` per baris, dan pertahankan spasi di dalam tanda kutip.
 </instructions>
 
 <help>
-<hint>Every line is five characters long. The middle lines have three spaces between the two `A`s.</hint>
+<hint>Baris kedua dan keempat hanya berisi dua huruf A dengan tiga spasi di antaranya.</hint>
 <solution>
 print('AAAAA')
 print('A   A')

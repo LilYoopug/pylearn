@@ -1,7 +1,7 @@
 ---
 order: 5
 exercise: 32
-title: Stock Value
+title: Nilai Saham
 module: 6
 check: strict
 vars: |
@@ -12,36 +12,24 @@ expect: "{{value}}"
 ---
 
 <learn>
-A function can call another function. Splitting a calculation into small named
-pieces is what makes a program easy to change later:
+Fungsi yang baik punya satu tugas yang jelas. Kalau sebuah perhitungan dipakai
+di beberapa tempat, jadikan fungsi.
 
 ```python
-def total(price, shares):
-    return price * shares
-
-def report(price, shares):
-    return f'Value: {total(price, shares)}'
+def luas(panjang, lebar):
+    return panjang * lebar
 ```
-
-Each function does one thing, and the names say what that thing is.
 </learn>
 
 <instructions>
-You own **{{shares}}** shares at **{{price}}** each.
+Kamu memiliki **{{shares}}** saham dengan harga **{{price}}** per lembar.
 
-Write a function `value(price, shares)` that returns the total worth, then
-print the number.
-
-```python
-def value(price, shares):
-    return price * shares
-
-print(value({{price}}, {{shares}}))
-```
+Tulis fungsi `value(price, shares)` yang mengembalikan total nilainya, lalu
+cetak angkanya.
 </instructions>
 
 <help>
-<hint>Multiply the two parameters and return the result.</hint>
+<hint>Fungsi mengembalikan harga dikali jumlah lembar. Panggil dengan urutan parameter yang benar.</hint>
 <solution>
 def value(price, shares):
     return price * shares

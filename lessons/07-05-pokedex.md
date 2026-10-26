@@ -1,7 +1,7 @@
 ---
 order: 5
 exercise: 38
-title: Monster Index
+title: Indeks Monster
 module: 7
 check: strict
 vars: |
@@ -11,46 +11,28 @@ expect: |
 ---
 
 <learn>
-Two useful extras on classes:
+Method `__str__` menentukan bagaimana objek ditampilkan saat dicetak.
 
 ```python
-class Pokemon:
-    def __init__(self, name):
-        self.name = name
-
-    def __str__(self):
-        return self.name
+def __str__(self):
+    return self.name
 ```
 
-`__str__` decides what `print(obj)` shows — without it you would see
-`<Pokemon object at 0x...>`, which tells you nothing.
+Dengan method itu, `print(objek)` akan menampilkan nama, bukan alamat memori.
 </learn>
 
 <instructions>
-Create a class `Pokemon` with a `name` and a `__str__` that returns it.
+Buat class `Pokemon` dengan `name` dan `__str__` yang mengembalikan nama itu.
 
-Then build entries for these two and print a numbered index:
+Lalu buat entri untuk dua monster ini dan cetak indeks bernomor:
 
 ```output
 {{[f'{n + 1}. {m}' for n, m in enumerate(mons)]}}
 ```
-
-```python
-class Pokemon:
-    def __init__(self, name):
-        self.name = name
-
-    def __str__(self):
-        return self.name
-
-mons = [Pokemon(name) for name in {{mons}}]
-for number, mon in enumerate(mons, start=1):
-    print(f'{number}. {mon}')
-```
 </instructions>
 
 <help>
-<hint>`__str__` must return a string, not print one. With it defined, `{mon}` works inside an f-string.</hint>
+<hint>`__str__` cukup mengembalikan `self.name`. Untuk penomoran, pakai `enumerate(..., start=1)`.</hint>
 <solution>
 class Pokemon:
     def __init__(self, name):

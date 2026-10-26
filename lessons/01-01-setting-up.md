@@ -1,45 +1,45 @@
 ---
 order: 1
 exercise: 1
-title: Setting Up
+title: Persiapan
 module: 1
 check: output
 expect: Hello, World!
 ---
 
 <learn>
-The programming language we are learning is called **Python**, created by a
-developer named [Guido van Rossum](https://en.wikipedia.org/wiki/Guido_van_Rossum)
-in the early 90s.
+Bahasa pemrograman yang akan kita pelajari bernama **Python**, dibuat oleh
+seorang pengembang bernama [Guido van Rossum](https://en.wikipedia.org/wiki/Guido_van_Rossum)
+pada awal era 90-an.
 
 <sprites>skull,hero,snake</sprites>
 
-Python is designed to be easy to read, which makes it the perfect language for
-beginners. It is also super versatile and used in:
+Python dirancang agar mudah dibaca, sehingga cocok untuk pemula. Python juga
+sangat serbaguna dan dipakai untuk:
 
-- Data analysis & visualization
-- Artificial intelligence (AI)
+- Analisis data & visualisasi
+- Kecerdasan buatan (AI)
 - Machine learning (ML)
-- Web development
-- And more!
+- Pengembangan web
+- Dan masih banyak lagi!
 
-All the code we write will live in `.py` files, and we write them inside a
-**code editor** — the panel on the right.
+Semua kode yang kita tulis akan tersimpan di berkas `.py`, dan kita
+menulisnya di dalam **editor kode** — panel di sebelah kanan.
 </learn>
 
 <instructions>
-Print the classic first message. Copy this line into the editor:
+Cetak pesan pertama yang klasik. Salin baris ini ke dalam editor:
 
 ```python
 print('Hello, World!')
 ```
 
-Then press **Run** and check the Terminal shows `Hello, World!` before you
-press **Submit answer**.
+Lalu tekan **Run** dan pastikan Terminal menampilkan `Hello, World!` sebelum
+kamu menekan **Submit answer**.
 </instructions>
 
 <help>
-<hint>`print()` shows whatever is inside the parentheses. Keep the quotes around the text.</hint>
+<hint>`print()` menampilkan apa pun yang ada di dalam tanda kurung. Jangan hapus tanda kutipnya.</hint>
 <solution>
 print('Hello, World!')
 </solution>

@@ -1,7 +1,7 @@
 ---
 order: 4
 exercise: 37
-title: Bank Accounts
+title: Rekening Bank
 module: 7
 check: strict
 vars: |
@@ -12,44 +12,25 @@ expect: "{{balance}}"
 ---
 
 <learn>
-Methods can change the object. That is what makes a class more than a
-container of values:
+Method bisa mengubah state objeknya sendiri.
 
 ```python
-class Account:
-    def __init__(self, balance):
-        self.balance = balance
-
-    def deposit(self, amount):
-        self.balance += amount
+def deposit(self, amount):
+    self.balance += amount
 ```
 
-`self.balance += amount` mutates the instance. After the call, the object
-remembers the new value.
+`+=` menambahkan nilai ke atribut yang sudah ada.
 </learn>
 
 <instructions>
-Write a class `Account` with a `balance` and a `deposit(amount)` method.
+Tulis class `Account` dengan `balance` dan method `deposit(amount)`.
 
-An account starts at **{{start}}**, then **{{deposit}}** is deposited. Print
-the final balance.
-
-```python
-class Account:
-    def __init__(self, balance):
-        self.balance = balance
-
-    def deposit(self, amount):
-        self.balance += amount
-
-account = Account({{start}})
-account.deposit({{deposit}})
-print(account.balance)
-```
+Sebuah akun dimulai dari **{{start}}**, lalu **{{deposit}}** disetorkan. Cetak
+saldo akhirnya.
 </instructions>
 
 <help>
-<hint>Add to `self.balance` inside the method, then print `account.balance` afterwards.</hint>
+<hint>Simpan saldo di `self.balance`, lalu tambahkan jumlah setoran di dalam method `deposit`.</hint>
 <solution>
 class Account:
     def __init__(self, balance):

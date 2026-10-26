@@ -1,7 +1,7 @@
 ---
 order: 1
 exercise: 34
-title: Restaurants
+title: Restoran
 module: 7
 check: strict
 vars: |
@@ -12,8 +12,7 @@ expect: |
 ---
 
 <learn>
-A **class** is a template for making your own type. `class` + `__init__` is
-how you describe what every instance carries:
+Sebuah **class** adalah cetak biru untuk membuat objek.
 
 ```python
 class Restaurant:
@@ -22,14 +21,15 @@ class Restaurant:
         self.cuisine = cuisine
 ```
 
-`__init__` runs automatically when you create an instance. `self` is the
-instance being built — every attribute you hang on `self` sticks to it.
+`__init__` dijalankan saat objek dibuat, dan `self` merujuk pada objek itu
+sendiri.
 </learn>
 
 <instructions>
-Create a class `Restaurant` whose `__init__` takes a name and a cuisine.
+Buat class `Restaurant` yang `__init__`-nya menerima nama dan jenis masakan.
 
-Then make one for **{{name}}**, which serves **{{cuisine}}** food, and print:
+Lalu buat satu untuk **{{name}}**, yang menyajikan masakan **{{cuisine}}**,
+dan cetak:
 
 ```output
 {{name}} serves {{cuisine}} food.
@@ -47,7 +47,7 @@ print(f'{place.name} serves {place.cuisine} food.')
 </instructions>
 
 <help>
-<hint>Read the attributes back with `place.name` and `place.cuisine`.</hint>
+<hint>Simpan kedua argumen sebagai atribut `self`, lalu susun kalimatnya dengan f-string.</hint>
 <solution>
 class Restaurant:
     def __init__(self, name, cuisine):

@@ -1,7 +1,7 @@
 ---
 order: 5
 exercise: 26
-title: Playlist
+title: Kaset Campuran
 module: 5
 check: strict
 vars: |
@@ -12,25 +12,21 @@ expect: |
 ---
 
 <learn>
-Putting a list together with a loop is one of the most common things you will
-do. A **side** and a **track** belong together, so a tuple inside a list keeps
-them paired:
+Kamu bisa menggabungkan `enumerate()` dengan f-string untuk membuat daftar
+bernomor dalam satu baris.
 
 ```python
-tape = [('A', 'Blue Monday'), ('B', 'Nights')]
-for side, track in tape:
-    print(side, track)
+for i, lagu in enumerate(tracks):
+    print(f'{i + 1}. {lagu}')
 ```
-
-Python unpacks each pair into the two names for you.
 </learn>
 
 <instructions>
-Make a mixtape from these tracks, in this order:
+Buat mixtape dari lagu-lagu ini, dengan urutan seperti ini:
 
 {{tracks}}
 
-Print them as a numbered tracklist, one per line:
+Cetak sebagai daftar lagu bernomor, satu per baris:
 
 ```output
 {{[f'{i + 1}. {t}' for i, t in enumerate(tracks)]}}
@@ -38,7 +34,7 @@ Print them as a numbered tracklist, one per line:
 </instructions>
 
 <help>
-<hint>A single list of titles is enough here. `enumerate(tape, start=1)` numbers them.</hint>
+<hint>`enumerate()` memberi nomor, f-string menyusun teksnya. Ingat tambahkan 1 pada nomornya.</hint>
 <solution>
 tape = {{tracks}}
 for number, track in enumerate(tape, start=1):

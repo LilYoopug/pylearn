@@ -1,7 +1,7 @@
 ---
 order: 3
 exercise: 41
-title: Countdown
+title: Hitung Mundur
 module: 8
 check: strict
 vars: |
@@ -12,33 +12,24 @@ expect: |
 ---
 
 <learn>
-`range()` takes three arguments: start, stop, and step.
+Modul dan fungsi bawaan Python membuat banyak hal menjadi singkat.
 
-```python
-range(5, 0, -1)     # 5, 4, 3, 2, 1
-```
-
-The **stop** value is never included. A negative step counts down, which is
-exactly what a countdown needs.
+`range(start, 0, -1)` menghasilkan angka menurun, dan bisa langsung dipakai
+di dalam loop.
 </learn>
 
 <instructions>
-Count down from **{{start}}** to 1, one number per line, then print `Liftoff!`.
+Hitung mundur dari **{{start}}** sampai 1, satu angka per baris, lalu cetak
+`Liftoff!`.
 
 ```output
 {{list(range(start, 0, -1))}}
 Liftoff!
 ```
-
-```python
-for n in range({{start}}, 0, -1):
-    print(n)
-print('Liftoff!')
-```
 </instructions>
 
 <help>
-<hint>`range(start, 0, -1)` stops before 0, so it ends at 1.</hint>
+<hint>Loop dengan `range(start, 0, -1)` untuk angkanya, lalu cetak `Liftoff!` setelah loop selesai.</hint>
 <solution>
 for n in range({{start}}, 0, -1):
     print(n)

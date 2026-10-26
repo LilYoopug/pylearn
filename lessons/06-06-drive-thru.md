@@ -1,7 +1,7 @@
 ---
 order: 6
 exercise: 33
-title: Drive-Thru
+title: Pesan Makanan
 module: 6
 check: strict
 vars: |
@@ -14,34 +14,31 @@ expect: |
 ---
 
 <learn>
-Functions can take a **default** parameter, so callers only pass what they
-need to change:
+Parameter bisa punya **nilai bawaan**, sehingga pemanggil boleh tidak
+menyebutkannya.
 
 ```python
 def order(item, quantity=1):
-    return f'{quantity}x {item}'
-
-print(order('burger'))          # 1x burger
-print(order('burger', 2))       # 2x burger
+    ...
 ```
 
-The default is written once, in the `def` line, with `=`.
+Kalau `quantity` tidak diberikan, nilainya 1.
 </learn>
 
 <instructions>
-Write a function `order(item, quantity=1)` that returns a sentence describing
-the order. Call it for **2× {{item}}** and print:
+Tulis fungsi `order(item, quantity=1)` yang mengembalikan kalimat berisi
+pesanan. Panggil untuk **2× {{item}}** lalu cetak:
 
 ```output
 You ordered {{item}}.
 Total: {{total}}
 ```
 
-Each item costs **{{price}}**.
+Setiap item berharga **{{price}}**.
 </instructions>
 
 <help>
-<hint>Call `order('{{item}}', 2)` for the first line. Multiply price by quantity for the total.</hint>
+<hint>Kalimat pertama menyebut nama item, baris kedua berisi total harga = harga × jumlah.</hint>
 <solution>
 def order(item, quantity=1):
     return f'You ordered {item}.'

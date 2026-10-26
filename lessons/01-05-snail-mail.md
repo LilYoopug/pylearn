@@ -1,7 +1,7 @@
 ---
 order: 5
 exercise: 5
-title: Envelope
+title: Alamat Amplop
 module: 1
 check: strict
 vars: |
@@ -16,18 +16,17 @@ expect: |
 ---
 
 <learn>
-A letter has a shape: the name on its own line, then the street address, then
-the city. Your job is to reproduce that shape with `print()`.
+Sebuah surat punya bentuk: nama pada barisnya sendiri, lalu alamat jalan, lalu
+kota. Tugasmu meniru bentuk itu dengan `print()`.
 
-This is exactly what the `print()` function is for — one call per line of the
-address.
+Inilah gunanya fungsi `print()` — satu pemanggilan untuk satu baris alamat.
 </learn>
 
 <instructions>
-Print an envelope address for **{{name}}**, who lives at
+Cetak alamat amplop untuk **{{name}}**, yang tinggal di
 **{{number}} {{street}}**, **{{city}}**.
 
-It must be exactly three lines, in this order:
+Harus tepat tiga baris, dengan urutan ini:
 
 ```output
 {{name}}
@@ -35,11 +34,12 @@ It must be exactly three lines, in this order:
 {{city}}
 ```
 
-Note that the number and the street share one line, separated by a space.
+Perhatikan bahwa nomor dan nama jalan berada di satu baris, dipisahkan satu
+spasi.
 </instructions>
 
 <help>
-<hint>Three `print()` calls. The middle one has two values in the same string.</hint>
+<hint>Tiga pemanggilan `print()`. Baris tengah berisi dua nilai dalam satu string.</hint>
 <solution>
 print('{{name}}')
 print('{{number}} {{street}}')

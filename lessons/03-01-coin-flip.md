@@ -1,7 +1,7 @@
 ---
 order: 1
 exercise: 11
-title: Coin Flip
+title: Lempar Koin
 module: 3
 check: strict
 vars: |
@@ -12,8 +12,9 @@ expect: "{{result}}"
 ---
 
 <learn>
-`if` runs a block only when a condition is true, and `else` covers everything
-that is not:
+`if` membuat program bisa memilih. Di dalamnya kamu menaruh sebuah
+perbandingan, dan blok di bawahnya hanya dijalankan kalau perbandingan itu
+**benar**.
 
 ```python
 if guess == flip:
@@ -22,18 +23,13 @@ else:
     print('You lose!')
 ```
 
-Two things to notice: the line ends with a colon, and the block underneath is
-**indented**. Python uses indentation to know what belongs to the `if` —
-there are no braces.
-
-`==` compares two values. A single `=` assigns. Mixing them up is the most
-common beginner mistake.
+Perhatikan `==` (sama dengan) berbeda dari `=` (menyimpan nilai).
 </learn>
 
 <instructions>
-A coin is flipped and lands on **{{flip}}**. You guessed **{{guess}}**.
+Sebuah koin dilempar dan mendarat di **{{flip}}**. Tebakanmu **{{guess}}**.
 
-Print `You win!` if the guess matches, otherwise print `You lose!`.
+Cetak `You win!` kalau tebakan cocok, kalau tidak cetak `You lose!`.
 
 ```python
 guess = '{{guess}}'
@@ -46,7 +42,7 @@ else:
 </instructions>
 
 <help>
-<hint>Compare the two strings with `==`. Both branches need their own `print`, indented four spaces.</hint>
+<hint>Bandingkan kedua nilai dengan `==`, lalu cetak pesan yang sesuai di dalam blok `if` dan `else`.</hint>
 <solution>
 guess = '{{guess}}'
 flip = '{{flip}}'

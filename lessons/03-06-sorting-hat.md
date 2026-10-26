@@ -1,7 +1,7 @@
 ---
 order: 6
 exercise: 16
-title: House Sorter
+title: Topi Pemilah
 module: 3
 check: strict
 vars: |
@@ -18,35 +18,28 @@ expect: "{{house}}"
 ---
 
 <learn>
-A long `elif` ladder lets you grade something into bands. Each `elif` only
-gets checked if every earlier condition was false — which means you do **not**
-need to repeat the upper bound:
+Saat ada lebih dari dua kemungkinan, `elif` membuat pemeriksaan berjalan
+berurutan dari kondisi paling ketat.
 
-```python
-if score >= 90:
-    house = 'Gryffindor'
-elif score >= 75:      # score < 90 is already guaranteed here
-    house = 'Ravenclaw'
-```
-
-Putting the highest band first is what makes the shorter conditions correct.
+Urutannya penting: kondisi pertama yang cocok yang dipakai, jadi mulailah
+dari yang paling besar.
 </learn>
 
 <instructions>
-The house sorter reads a score of **{{score}}**.
+Topi pemilah membaca sebuah skor **{{score}}**.
 
-| score      | house       |
-|------------|-------------|
-| 90 or more | Gryffindor  |
-| 75 or more | Ravenclaw   |
-| 60 or more | Hufflepuff  |
-| below 60   | Slytherin   |
+| skor        | asrama      |
+|-------------|-------------|
+| 90 ke atas  | Gryffindor  |
+| 75 ke atas  | Ravenclaw   |
+| 60 ke atas  | Hufflepuff  |
+| di bawah 60 | Slytherin   |
 
-Print the house name only.
+Cetak nama asramanya saja.
 </instructions>
 
 <help>
-<hint>Start from the highest band. Each `elif` only needs its lower bound because the higher ones already failed.</hint>
+<hint>Empat cabang berurutan, dimulai dari skor tertinggi.</hint>
 <solution>
 score = {{score}}
 if score >= 90:

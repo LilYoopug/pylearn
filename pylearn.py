@@ -983,7 +983,7 @@ class CodeBlock(Horizontal):
     def on_click(self, event) -> None:
         if getattr(event.widget, "has_class", None) and event.widget.has_class("cb-copy"):
             self.app.copy_to_clipboard(self.raw)
-            self.app.notify(f"Copied  {self.raw}", timeout=2)
+            self.app.notify(f"Disalin  {self.raw}", timeout=2)
 
 
 class HelpItem(Vertical):
@@ -1008,7 +1008,7 @@ class HelpItem(Vertical):
         if not self.locked:
             return self.title_text
         left = max(0, self.unlock_at - self.failures)
-        return f"{self.title_text}  ·  {left} more to unlock"
+        return f"{self.title_text}  ·  {left} lagi"
 
     def unlock(self, failures: int) -> None:
         """Called after a failed submit: opens the body once the count is met."""
@@ -1023,7 +1023,7 @@ class HelpItem(Vertical):
         if self.locked:
             left = max(0, self.unlock_at - self.failures)
             self.app.notify(
-                f"Get it wrong {left} more time{'s' if left != 1 else ''} to unlock.",
+                f"Salah {left} kali lagi untuk membuka.",
                 timeout=2,
             )
             return
@@ -2738,11 +2738,11 @@ class LevelRow(Widget):
         put(13, lv.title, _cell_style(ink, bg, not locked))
 
         if done:
-            action, style = LEVEL_ICON["done"] + " done", _cell_style(BEACH["frond"], bg, True)
+            action, style = LEVEL_ICON["done"] + " selesai", _cell_style(BEACH["frond"], bg, True)
         elif locked:
-            action, style = f"{LEVEL_ICON['locked']} locked", _cell_style("#6a7694", bg)
+            action, style = f"{LEVEL_ICON['locked']} terkunci", _cell_style("#6a7694", bg)
         else:
-            action, style = f"{LEVEL_ICON['unlocked']} play", _cell_style("#ffd166", bg, True)
+            action, style = f"{LEVEL_ICON['unlocked']} main", _cell_style("#ffd166", bg, True)
 
         put(max(18, width - len(action) - 2), action, style)
         return _strip_from_cells(cells, width)
@@ -2957,22 +2957,22 @@ class PathScreen(Vertical):
         done = level.state == "done"
         locked = level.state == "locked"
 
-        yield Static(f"MODULE {module.number}  ·  LEVEL {level.number}", id="lv-kicker")
+        yield Static(f"MODUL {module.number}  ·  LEVEL {level.number}", id="lv-kicker")
         yield Static(level.title, id="lv-title")
         yield Static(module.title, id="lv-module")
         yield Static(level.note or module.blurb, id="lv-blurb")
 
         if locked:
-            yield Static("Clear the level before this one to unlock it.", id="lv-note")
-            yield PixelButton(f"{LEVEL_ICON['locked']} Locked",
+            yield Static("Selesaikan level sebelumnya untuk membuka ini.", id="lv-note")
+            yield PixelButton(f"{LEVEL_ICON['locked']} Terkunci",
                               id="level-btn", classes="locked")
         elif done:
-            yield Static("Completed  ·  replay any time", id="lv-note")
-            yield PixelButton(f"{LEVEL_ICON['done']} Replay",
+            yield Static("Selesai  ·  bisa diulang kapan saja", id="lv-note")
+            yield PixelButton(f"{LEVEL_ICON['done']} Ulangi",
                               id="level-btn", classes="ready")
         else:
-            yield Static("Not finished yet", id="lv-note")
-            yield PixelButton(f"{LEVEL_ICON['unlocked']} Play",
+            yield Static("Belum selesai", id="lv-note")
+            yield PixelButton(f"{LEVEL_ICON['unlocked']} Main",
                               id="level-btn", classes="ready")
 
     def on_mount(self) -> None:
@@ -2989,7 +2989,7 @@ class PathScreen(Vertical):
             (m for m in self.modules if level in m.levels), self.modules[0]
         )
         foot.update(
-            f"Module {module.number} · {module.title}    "
+            f"Modul {module.number} · {module.title}    "
             f"Level {level.number} · {level.title}"
         )
 
@@ -3026,7 +3026,7 @@ class PathScreen(Vertical):
         locked = level.state == "locked"
 
         self.query_one("#lv-kicker", Static).update(
-            f"MODULE {module.number}  ·  LEVEL {level.number}"
+            f"MODUL {module.number}  ·  LEVEL {level.number}"
         )
         self.query_one("#lv-title", Static).update(level.title)
         self.query_one("#lv-module", Static).update(module.title)
@@ -3035,14 +3035,14 @@ class PathScreen(Vertical):
         )
 
         if locked:
-            note = "Clear the level before this one to unlock it."
-            label, cls = f"{LEVEL_ICON['locked']} Locked", "locked"
+            note = "Selesaikan level sebelumnya untuk membuka ini."
+            label, cls = f"{LEVEL_ICON['locked']} Terkunci", "locked"
         elif done:
-            note = "Completed  ·  replay any time"
-            label, cls = f"{LEVEL_ICON['done']} Replay", "ready"
+            note = "Selesai  ·  bisa diulang kapan saja"
+            label, cls = f"{LEVEL_ICON['done']} Ulangi", "ready"
         else:
-            note = "Not finished yet"
-            label, cls = f"{LEVEL_ICON['unlocked']} Play", "ready"
+            note = "Belum selesai"
+            label, cls = f"{LEVEL_ICON['unlocked']} Main", "ready"
 
         self.query_one("#lv-note", Static).update(note)
         button = self.query_one("#level-btn", PixelButton)
@@ -3299,29 +3299,29 @@ class SettingsPage(Vertical):
         self._reset_armed = False
 
     def compose(self) -> ComposeResult:
-        yield Static("Settings", id="set-title")
-        yield Static("Changes apply immediately.", id="set-sub")
+        yield Static("Pengaturan", id="set-title")
+        yield Static("Perubahan langsung berlaku.", id="set-sub")
 
-        yield Static("APPEARANCE", classes="set-group")
+        yield Static("TAMPILAN", classes="set-group")
         yield Static(self._accent_text(), id="set-accent", classes="set-row")
         yield Static(self._anim_text(), id="set-anim", classes="set-row")
 
-        yield Static("FEEDBACK", classes="set-group")
+        yield Static("EFEK", classes="set-group")
         yield Static(self._conf_text(), id="set-conf", classes="set-row")
 
-        yield Static("PROGRESS", classes="set-group")
-        yield Static("Reset progress          clear levels and hints",
+        yield Static("PROGRES", classes="set-group")
+        yield Static("Hapus progres           kosongkan level dan petunjuk",
                      id="set-reset", classes="set-row")
 
         yield Static("INTELLISENSE", classes="set-group")
         for label, text in (
-            ("Names", "variables, functions and classes in your file"),
-            ("Members", "type `items.` to list methods of that value"),
-            ("Builtins", "print, range, len, sum and the rest of Python"),
-            ("Keys", "Tab or Enter inserts, Esc closes, ctrl+space opens"),
+            ("Nama", "variabel, fungsi dan class di berkasmu"),
+            ("Anggota", "ketik `items.` untuk melihat method-nya"),
+            ("Bawaan", "print, range, len, sum dan sisanya dari Python"),
+            ("Tombol", "Tab atau Enter memasukkan, Esc menutup, ctrl+space membuka"),
         ):
             yield Static(f"{label:<10} {text}", classes="set-row")
-        yield Static("Click a row to change it. Esc returns to the lesson.",
+        yield Static("Klik baris untuk mengubahnya. Esc kembali ke pelajaran.",
                      id="set-hint")
 
     # -- labels -----------------------------------------------------------
@@ -3382,7 +3382,7 @@ class SettingsPage(Vertical):
             if not self._reset_armed:
                 self._reset_armed = True
                 self.query_one("#set-reset", Static).update(
-                    "Reset progress          click again to confirm"
+                    "Hapus progres           klik lagi untuk konfirmasi"
                 )
                 return
             self.post_message(self.ResetRequested())
@@ -3560,7 +3560,7 @@ class PyLearnApp(App):
         path = self.query_one("#path", PathScreen)
         level = path.selected
         if level.state == "locked":
-            self.notify("Clear the level above this one first.",
+            self.notify("Selesaikan level sebelumnya dulu.",
                         title="Locked", severity="warning", timeout=2)
             return
         self.show_lesson()
@@ -3813,8 +3813,8 @@ class PyLearnApp(App):
             yield ProgressBar(id="progressbar")
             yield Label("0%", id="pct")
             yield Static("", id="top-gap")
-            yield PixelButton("Home", id="home-btn", classes="topact")
-            yield PixelButton("Setup", id="settings-btn", classes="topact")
+            yield PixelButton("Beranda", id="home-btn", classes="topact")
+            yield PixelButton("Atur", id="settings-btn", classes="topact")
 
         # ───── main menu ─────
         with Beach(id="scene"):
@@ -3830,7 +3830,7 @@ class PyLearnApp(App):
         with Horizontal(id="path-foot"):
             yield Static("", id="pf-left")
             yield Static("", id="pf-gap")
-            yield Static("↑ ↓  move     enter  open/play     esc  back to menu",
+            yield Static("↑ ↓  pilih     enter  buka/main     esc  kembali ke menu",
                          id="pf-keys")
 
         with Horizontal(id="body"):
@@ -3854,13 +3854,13 @@ class PyLearnApp(App):
                         yield PixelButton("⋯", id="more-btn", classes="icon")
                         yield Static("", id="actions-gap")
                         yield PixelButton("▶  Run", id="run-btn")
-                        yield PixelButton("Submit answer", id="submit-btn", classes="blue")
+                        yield PixelButton("Kumpulkan", id="submit-btn", classes="blue")
                 yield Static("Terminal", id="term-head")
                 with Vertical(id="term-wrap"):
                     yield RichLog(id="output", markup=True, wrap=True, highlight=False)
                     with Vertical(id="placeholder"):
                         yield Label("‹ ›", id="ph-icon")
-                        yield Label("Click [b]Run[/b] to view your results", id="ph-text", markup=True)
+                        yield Label("Tekan [b]Run[/b] untuk melihat hasilnya", id="ph-text", markup=True)
 
         # bottom bar
         with Horizontal(id="bottom"):
@@ -3868,10 +3868,10 @@ class PyLearnApp(App):
             with Vertical(id="ex-info"):
                 yield Label("Setting Up", id="ex-title")
                 with Horizontal(id="ex-row"):
-                    yield Label("Exercise 1 / 5", id="ex-sub")
+                    yield Label("Latihan 1 / 5", id="ex-sub")
             yield Static("", id="bottom-gap")
-            yield PixelButton("Back", id="back-btn")
-            yield PixelButton("Next", id="next-btn")
+            yield PixelButton("Sebelumnya", id="back-btn")
+            yield PixelButton("Berikutnya", id="next-btn")
 
     # ------------------------------------------------------------------ #
     def on_mount(self) -> None:
@@ -3941,7 +3941,7 @@ class PyLearnApp(App):
         )
         module = self._module_of(level)
         self.query_one("#ex-sub", Label).update(
-            f"Exercise {level.exercise} · {level.number}/{len(module.levels)}"
+            f"Latihan {level.exercise} · {level.number}/{len(module.levels)}"
         )
         self._last_stdout = ""
 
@@ -3962,18 +3962,18 @@ class PyLearnApp(App):
             yield Static("No lesson loaded.", classes="prose")
             return
 
-        yield Static("Learn", classes="section-header")
+        yield Static("Materi", classes="section-header")
         yield from self._render_blocks(lesson.learn)
-        yield Static("Instructions", classes="section-header")
+        yield Static("Instruksi", classes="section-header")
         yield from self._render_blocks(lesson.instructions)
-        yield Static("Help", classes="section-header")
+        yield Static("Bantuan", classes="section-header")
         failures = self._failures_for(lesson)
         if lesson.hint:
-            yield HelpItem("♡", "Hint", lesson.hint,
+            yield HelpItem("♡", "Petunjuk", lesson.hint,
                            locked=failures < HINT_AFTER,
                            unlock_at=HINT_AFTER, failures=failures)
         if lesson.solution:
-            yield HelpItem("◉", "Solution", lesson.solution,
+            yield HelpItem("◉", "Solusi", lesson.solution,
                            locked=failures < SOLUTION_AFTER,
                            unlock_at=SOLUTION_AFTER, failures=failures)
 
@@ -4132,7 +4132,7 @@ class PyLearnApp(App):
         if expect and actual != expect:
             return False, describe_mismatch(expect, actual)
         if not expect and not actual:
-            return False, "Run it first — nothing was printed."
+            return False, "Belum ada keluaran — tekan Run dulu."
 
         if mode == "strict" and code_rc != 0:
             first = err.strip().splitlines()[0] if err.strip() else "exit code"
@@ -4150,10 +4150,10 @@ class PyLearnApp(App):
         lesson = level.lesson if level is not None else None
 
         if not self.query_one("#editor", PyTextArea).text.strip():
-            self.notify("Write some code first, then Run and submit.",
-                        title="Editor is empty", severity="warning", timeout=4)
+            self.notify("Tulis kode dulu, lalu Run dan Kumpulkan.",
+                        title="Editor kosong", severity="warning", timeout=4)
         elif lesson is None:
-            self.notify("No lesson loaded.", severity="warning", timeout=3)
+            self.notify("Belum ada pelajaran yang dimuat.", severity="warning", timeout=3)
         else:
             self.run_worker(self._judge(level, lesson), exclusive=True)
 
@@ -4165,8 +4165,8 @@ class PyLearnApp(App):
         # The answer must be the code that was actually run. Without this,
         # running the solution and then editing it still passed.
         if self._last_run_code is not None and code != self._last_run_code:
-            self.notify("Press Run again — the code changed since it last ran.",
-                        title="Run it first", severity="warning", timeout=4)
+            self.notify("Tekan Run lagi — kode berubah sejak terakhir dijalankan.",
+                        title="Jalankan dulu", severity="warning", timeout=4)
             return
 
         self.query_one("#term-wrap").add_class("-ran")
@@ -4190,7 +4190,7 @@ class PyLearnApp(App):
         wrap = self.query_one("#term-wrap")
         wrap.add_class("-ran")
         log.write(Text(f"✗ {hint}", style=ERROR))
-        self.notify(hint, title="✗ not quite", severity="warning", timeout=4)
+        self.notify(hint, title="✗ belum tepat", severity="warning", timeout=4)
         self._flash_terminal()
 
     def _flash_terminal(self) -> None:
@@ -4222,7 +4222,7 @@ class PyLearnApp(App):
                 f"[b {TEXT}]{self._selected.title}[/]"
             )
         else:
-            tail = f"Python  /  [b {TEXT}]Level select[/]"
+            tail = f"Python  /  [b {TEXT}]Pilih level[/]"
         try:
             self.query_one("#crumbs", Label).update(tail)
         except Exception:
@@ -4242,7 +4242,7 @@ class PyLearnApp(App):
         level.state = "done"
         unlock_next(self.modules, level)
         self._refresh_header()
-        self.notify("Correct!", title="Level complete", timeout=3)
+        self.notify("Benar!", title="Level selesai", timeout=3)
         self.persist()
 
     sidebar_open = False
@@ -4311,14 +4311,14 @@ class PyLearnApp(App):
     def _copy_editor(self) -> None:
         text = self.query_one("#editor", PyTextArea).text
         self.copy_to_clipboard(text)
-        self.notify("Editor contents copied.", timeout=2)
+        self.notify("Isi editor disalin.", timeout=2)
 
     def _reset_editor(self) -> None:
         lesson = self._selected.lesson if self._selected else None
         starter = lesson.start if lesson else STARTER_CODE
         self.query_one("#editor", PyTextArea).text = starter
         self.query_one("#editor", PyTextArea).move_cursor((0, 0))
-        self.notify("Editor reset to the starter code.", timeout=2)
+        self.notify("Editor dikembalikan ke kode awal.", timeout=2)
 
     def open_load(self) -> None:
         if self.load_open:
@@ -4348,26 +4348,26 @@ class PyLearnApp(App):
         event.stop()
         path = event.path
         if not path:
-            self.notify("No path given.", severity="warning", timeout=2)
+            self.notify("Tidak ada path yang diberikan.", severity="warning", timeout=2)
             return
         target = Path(path).expanduser()
         if target.suffix != ".py":
-            self.notify("That is not a .py file.", title="Load failed",
+            self.notify("Itu bukan berkas .py.", title="Gagal memuat",
                         severity="warning", timeout=3)
             return
         try:
             source = target.read_text(encoding="utf-8")
         except FileNotFoundError:
-            self.notify(f"No such file: {target}", title="Load failed",
+            self.notify(f"Berkas tidak ditemukan: {target}", title="Gagal memuat",
                         severity="error", timeout=3)
             return
         except OSError as exc:
-            self.notify(str(exc), title="Load failed",
+            self.notify(str(exc), title="Gagal memuat",
                         severity="error", timeout=3)
             return
         self.query_one("#editor", PyTextArea).text = source
         self.close_load()
-        self.notify(f"Loaded {target.name}", timeout=2)
+        self.notify(f"Dimuat {target.name}", timeout=2)
 
     # -- settings page -----------------------------------------------------
 
@@ -4437,7 +4437,7 @@ class PyLearnApp(App):
         except FileNotFoundError:
             pass
         except OSError as exc:
-            self.notify(f"Could not delete the save file: {exc}",
+            self.notify(f"Tidak bisa menghapus berkas progres: {exc}",
                         title="Reset failed", severity="error", timeout=4)
             return
         self.failures.clear()
@@ -4447,7 +4447,7 @@ class PyLearnApp(App):
                 level.state = "unlocked" if index == 0 else "locked"
         self.persist()
         self._refresh_header()
-        self.notify("Progress cleared.", title="Reset", timeout=2)
+        self.notify("Progres dihapus.", title="Reset", timeout=2)
         self.close_settings()
 
     def on_settings_page_changed(self, event: "SettingsPage.Changed") -> None:
@@ -4576,7 +4576,7 @@ class PyLearnApp(App):
         event.stop()
         level = event.level
         if level.state == "locked":
-            self.notify("Clear the level above this one first.",
+            self.notify("Selesaikan level sebelumnya dulu.",
                         title="Locked", severity="warning", timeout=2)
             return
         self.close_sidebar()
@@ -4661,17 +4661,17 @@ class PyLearnApp(App):
         target = index + delta
         if target < 0:
             # nothing before the first level: the list is the sensible place
-            self.notify("First level — back to the level list.", timeout=2)
+            self.notify("Level pertama — kembali ke daftar level.", timeout=2)
             self.show_path()
             return
         if target >= len(flat):
-            self.notify("Last level of the course.", title="Done", timeout=2)
+            self.notify("Level terakhir dari kursus.", title="Selesai", timeout=2)
             return
         nxt = flat[target]
         if nxt.state == "locked":
             self.notify(
-                "Finish this level to unlock the next one.",
-                title="Locked", severity="warning", timeout=3,
+                "Selesaikan level ini untuk membuka berikutnya.",
+                title="Terkunci", severity="warning", timeout=3,
             )
             return
         self._selected = nxt

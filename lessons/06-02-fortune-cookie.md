@@ -1,7 +1,7 @@
 ---
 order: 2
 exercise: 29
-title: Fortune Cookie
+title: Kue Keberuntungan
 module: 6
 check: strict
 vars: |
@@ -14,46 +14,28 @@ expect: "{{pick}}"
 ---
 
 <learn>
-A function becomes far more useful when it takes **parameters** — values you
-hand it each time you call:
+Fungsi bisa **mengembalikan** nilai dengan `return`, bukan hanya mencetaknya.
 
 ```python
-def show(fortune):
-    print(fortune)
-
-show('Be kind.')
+def double(n):
+    return n * 2
 ```
 
-And it becomes more useful still when it **returns** a value instead of
-printing, so the caller decides what to do with it:
-
-```python
-def pick_one(options):
-    return options[0]
-```
+Bedanya penting: `return` memberi nilainya kepadamu sehingga bisa dipakai
+lagi, sedangkan `print()` hanya menampilkannya.
 </learn>
 
 <instructions>
-Write a function `fortune(options)` that returns one fortune from a list, then
-print the one it picked for you today.
+Tulis fungsi `fortune(options)` yang mengembalikan satu pesan dari sebuah
+list, lalu cetak pesan yang terpilih untukmu hari ini.
 
-The cookie's message is: **{{pick}}**
+Pesan kue hari ini adalah: **{{pick}}**
 
-```python
-import random
-
-def fortune(options):
-    return random.choice(options)
-
-fortunes = {{fortunes}}
-print(fortune(fortunes))
-```
-
-For this run the output must be exactly `{{pick}}`.
+Untuk jalannya kali ini, keluarannya harus persis `{{pick}}`.
 </instructions>
 
 <help>
-<hint>`return` hands a value back; `print` just shows it. A function that returns can be printed by the caller.</hint>
+<hint>Di dalam fungsi, kembalikan satu elemen acak dari list dengan `return`.</hint>
 <solution>
 print('{{pick}}')
 </solution>

@@ -1,45 +1,43 @@
 ---
 order: 2
 exercise: 2
-title: Hello World
+title: Halo Dunia
 module: 1
 check: output
 expect: Hi
 ---
 
 <learn>
-`print()` is how a program talks to you. Whatever you put inside the
-parentheses gets written to the terminal.
+`print()` adalah cara sebuah program berbicara kepadamu. Apa pun yang kamu
+taruh di dalam tanda kurung akan ditulis ke terminal.
 
-You can print text — called a **string** — by wrapping it in quotes. Single
-quotes and double quotes both work, and produce exactly the same output:
+Kamu bisa mencetak teks — disebut **string** — dengan membungkusnya dengan
+tanda kutip. Kutip tunggal dan kutip ganda sama-sama bekerja, dan
+menghasilkan keluaran yang persis sama:
 
 ```python
 print('Hello')
 print("Hello")
 ```
 
-You can also print more than one thing by separating them with a comma:
+Kamu juga bisa mencetak lebih dari satu hal dengan memisahkannya memakai
+koma:
 
 ```python
 print('Hi', 'there')
 ```
 
-That prints `Hi there` — Python adds the space for you.
+Itu mencetak `Hi there` — Python menambahkan spasinya untukmu.
 </learn>
 
 <instructions>
-Print exactly the word `Hi`.
+Cetak tepat kata `Hi`.
 
-```python
-print('Hi')
-```
-
-Press Run, then Submit answer.
+Tekan Run, lalu Submit answer.
 </instructions>
 
 <help>
-<hint>Replace the text inside the quotes. Keep the quotes themselves.</hint>
+<hint>Ganti teks di dalam tanda kutip. Tanda kutipnya sendiri tetap dipertahankan.</hint>
 <solution>
 print('Hi')
 </solution>

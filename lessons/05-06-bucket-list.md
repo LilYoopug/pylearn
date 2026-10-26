@@ -1,7 +1,7 @@
 ---
 order: 6
 exercise: 27
-title: Bucket List
+title: Daftar Keinginan
 module: 5
 check: strict
 vars: |
@@ -12,37 +12,26 @@ expect: |
 ---
 
 <learn>
-Looping over a list and transforming each item is so common that Python has a
-short form for it:
+String punya banyak method bawaan, dan salah satunya adalah `upper()` yang
+mengubah teks menjadi huruf kapital.
 
 ```python
-names = ['ada', 'alan']
-loud = [n.upper() for n in names]     # ['ADA', 'ALAN']
+print('halo'.upper())
 ```
 
-That is a **list comprehension** — square brackets, an expression, then
-`for ... in ...`. It builds a new list rather than changing the old one.
-
-String methods you will use most: `.upper()`, `.lower()`, `.title()`, and
-`.strip()`.
+Method dipanggil dengan titik setelah nilainya.
 </learn>
 
 <instructions>
-Your bucket list:
+Daftar keinginanmu:
 
 {{dreams}}
 
-Print every entry in **capitals**, one per line.
-
-```python
-dreams = {{dreams}}
-for dream in dreams:
-    print(dream.upper())
-```
+Cetak setiap entri dalam **huruf kapital**, satu per baris.
 </instructions>
 
 <help>
-<hint>`print(dream.upper())` inside the loop is all it takes.</hint>
+<hint>Telusuri list-nya, lalu panggil `.upper()` pada setiap elemen sebelum dicetak.</hint>
 <solution>
 dreams = {{dreams}}
 for dream in dreams:

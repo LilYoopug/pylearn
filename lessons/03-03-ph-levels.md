@@ -1,7 +1,7 @@
 ---
 order: 3
 exercise: 13
-title: pH Levels
+title: Tingkat pH
 module: 3
 check: strict
 vars: |
@@ -17,37 +17,28 @@ expect: "{{result}}"
 ---
 
 <learn>
-`elif` chains several conditions together. Python checks them in order and
-runs the **first** one that is true:
+Rangkaian `if` / `elif` / `else` memeriksa kondisi secara berurutan, dan
+hanya blok pertama yang cocok yang dijalankan.
 
-```python
-if ph < 7:
-    print('Acidic')
-elif ph == 7:
-    print('Neutral')
-else:
-    print('Basic')
-```
-
-Order matters. If you checked `ph > 7` first, a value of 7 would fall through
-to the wrong branch.
+Ini berguna saat sebuah nilai punya beberapa rentang, seperti tingkat
+keasaman.
 </learn>
 
 <instructions>
-A solution has a pH of **{{ph}}**. Print its classification in this exact
-format:
+Sebuah larutan memiliki pH **{{ph}}**. Cetak klasifikasinya dengan format
+persis seperti ini:
 
 ```output
 {{result}}
 ```
 
-- below 7 → `Acidic`
-- exactly 7 → `Neutral`
-- above 7 → `Basic`
+- di bawah 7 → `Acidic`
+- tepat 7 → `Neutral`
+- di atas 7 → `Basic`
 </instructions>
 
 <help>
-<hint>Build the line with an f-string: `f'pH {ph} is {kind}'`. Use `elif` so only one branch runs.</hint>
+<hint>Tiga cabang: satu untuk kurang dari 7, satu untuk tepat 7, satu lagi untuk sisanya.</hint>
 <solution>
 ph = {{ph}}
 if ph < 7:

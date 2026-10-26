@@ -1,7 +1,7 @@
 ---
 order: 1
 exercise: 39
-title: Reels
+title: Mesin Slot
 module: 8
 check: strict
 vars: |
@@ -13,28 +13,23 @@ expect: "{{result}}"
 ---
 
 <learn>
-A **module** is a file of code you can borrow. `import` brings it in:
+Modul `random` sudah tersedia di Python, dan menyediakan banyak fungsi untuk
+mengambil nilai acak.
 
 ```python
 import random
 
-print(random.randint(1, 6))
-print(random.choice(['red', 'black']))
+pilihan = random.choice(['a', 'b', 'c'])
 ```
 
-`random` is in the standard library, so it is already installed. You can also
-import just one name, which is shorter to type:
-
-```python
-from random import choice
-```
+Kamu bisa mengambil beberapa nilai sekaligus dengan *list comprehension*.
 </learn>
 
 <instructions>
-Three reels spin and land on **{{a}}**, **{{b}}**, **{{c}}**.
+Tiga gulungan berputar dan berhenti di **{{a}}**, **{{b}}**, **{{c}}**.
 
-Use the `random` module to make the spin, then print `Jackpot!` if all three
-match, otherwise `Try again.`
+Gunakan modul `random` untuk membuat putarannya, lalu cetak `Jackpot!` kalau
+ketiganya sama, kalau tidak cetak `Try again.`
 
 ```python
 import random
@@ -47,11 +42,11 @@ else:
     print('Try again.')
 ```
 
-This run must print `{{result}}`.
+Jalan kali ini harus mencetak `{{result}}`.
 </instructions>
 
 <help>
-<hint>`a == b == c` chains the comparison. For this run, print the expected result directly.</hint>
+<hint>Ambil tiga nilai acak, lalu bandingkan ketiganya dalam satu kondisi `if`.</hint>
 <solution>
 print('{{result}}')
 </solution>

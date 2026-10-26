@@ -1,7 +1,7 @@
 ---
 order: 4
 exercise: 9
-title: Pythagorean
+title: Pythagoras
 module: 2
 check: strict
 vars: |
@@ -12,39 +12,25 @@ expect: "{{c}}"
 ---
 
 <learn>
-The Pythagorean theorem says that for a right triangle:
+Teorema Pythagoras: pada segitiga siku-siku, kuadrat sisi miring sama dengan
+jumlah kuadrat kedua sisi lainnya.
 
 ```
-c² = a² + b²
-```
-
-To get `c` on its own you take the square root. Python has no `sqrt` symbol,
-but raising to the power `0.5` is exactly the same thing:
-
-```python
 c = (a ** 2 + b ** 2) ** 0.5
 ```
 
-The parentheses around `a ** 2 + b ** 2` matter — the `** 0.5` must apply to
-the whole sum, not just the last term.
+Akar kuadrat sama saja dengan pangkat `0.5`.
 </learn>
 
 <instructions>
-A right triangle has sides **a = {{a}}** and **b = {{b}}**. Print the length
-of the hypotenuse `c`.
+Sebuah segitiga siku-siku memiliki sisi **a = {{a}}** dan **b = {{b}}**. Cetak
+panjang sisi miring `c`.
 
-```python
-a = {{a}}
-b = {{b}}
-c = (a ** 2 + b ** 2) ** 0.5
-print(c)
-```
-
-Print the value without rounding.
+Cetak nilainya tanpa pembulatan.
 </instructions>
 
 <help>
-<hint>Square both sides, add them, then raise the total to the power 0.5.</hint>
+<hint>Kuadratkan kedua sisi, jumlahkan, lalu ambil akarnya dengan `** 0.5`.</hint>
 <solution>
 a = {{a}}
 b = {{b}}

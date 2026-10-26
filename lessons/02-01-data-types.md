@@ -1,7 +1,7 @@
 ---
 order: 1
 exercise: 6
-title: Data Types
+title: Tipe Data
 module: 2
 check: strict
 vars: |
@@ -12,22 +12,23 @@ expect: "{{total}}"
 ---
 
 <learn>
-A **variable** is a name for a value:
+Sebuah **variabel** adalah nama untuk sebuah nilai:
 
 ```python
 age = 42
 ```
 
-Every value has a **type**. The four you meet first:
+Setiap nilai punya **tipe**. Empat tipe yang pertama kamu temui:
 
-| type    | example   | meaning                |
-|---------|-----------|------------------------|
-| `int`   | `7`       | whole number           |
-| `float` | `7.5`     | number with a decimal  |
-| `str`   | `'seven'` | text                   |
-| `bool`  | `True`    | true or false          |
+| tipe    | contoh    | arti                  |
+|---------|-----------|-----------------------|
+| `int`   | `7`       | bilangan bulat        |
+| `float` | `7.5`     | bilangan berdesimal   |
+| `str`   | `'seven'` | teks                  |
+| `bool`  | `True`    | benar atau salah      |
 
-Once a value is in a variable, you can do arithmetic with it:
+Setelah sebuah nilai tersimpan di variabel, kamu bisa melakukan aritmetika
+dengannya:
 
 ```python
 a = 3
@@ -35,12 +36,12 @@ b = 4
 print(a + b)
 ```
 
-The operators are `+`, `-`, `*`, `/`, `**` (power), and `%` (remainder).
+Operatornya adalah `+`, `-`, `*`, `/`, `**` (pangkat), dan `%` (sisa bagi).
 </learn>
 
 <instructions>
-Store **{{a}}** in a variable and **{{b}}** in another variable, then print
-their **sum**.
+Simpan **{{a}}** di sebuah variabel dan **{{b}}** di variabel lain, lalu cetak
+**jumlahnya**.
 
 ```python
 a = {{a}}
@@ -48,11 +49,11 @@ b = {{b}}
 print(a + b)
 ```
 
-The terminal should show a single number.
+Terminal harus menampilkan satu angka.
 </instructions>
 
 <help>
-<hint>Make two variables, then print the expression `a + b` — do not add the numbers yourself.</hint>
+<hint>Buat dua variabel, lalu cetak ekspresi `a + b` — jangan jumlahkan angkanya sendiri.</hint>
 <solution>
 a = {{a}}
 b = {{b}}

@@ -11,43 +11,23 @@ expect: |
 ---
 
 <learn>
-Fizz Buzz is the classic test of two ideas: a loop, and the `%` (remainder)
-operator.
+Operator `%` (modulo) memberi sisa bagi. Kalau `n % 3 == 0`, berarti `n` habis
+dibagi 3.
 
-```python
-7 % 3     # 1, because 7 = 2*3 + 1
-9 % 3     # 0, so 9 is divisible by 3
-```
-
-A number is divisible by something when the remainder is zero.
-
-The one subtlety: numbers divisible by **both** 3 and 5 must print `FizzBuzz`,
-so that check has to come **first** in the `if` chain.
+Ini cara klasik memeriksa kelipatan.
 </learn>
 
 <instructions>
-For every number from 1 to **{{limit}}**, print:
+Untuk setiap angka dari 1 sampai **{{limit}}**, cetak:
 
-- `FizzBuzz` if divisible by both 3 and 5
-- `Fizz` if divisible by 3
-- `Buzz` if divisible by 5
-- the number itself otherwise
-
-```python
-for i in range(1, {{limit}} + 1):
-    if i % 15 == 0:
-        print('FizzBuzz')
-    elif i % 3 == 0:
-        print('Fizz')
-    elif i % 5 == 0:
-        print('Buzz')
-    else:
-        print(i)
-```
+- `FizzBuzz` kalau habis dibagi 3 dan 5
+- `Fizz` kalau habis dibagi 3
+- `Buzz` kalau habis dibagi 5
+- angka itu sendiri kalau tidak memenuhi semuanya
 </instructions>
 
 <help>
-<hint>Check divisibility by 15 first — it covers "both 3 and 5" in one test.</hint>
+<hint>Periksa kelipatan 15 lebih dulu, baru 3, lalu 5 — urutannya menentukan hasil.</hint>
 <solution>
 for i in range(1, {{limit}} + 1):
     if i % 15 == 0:

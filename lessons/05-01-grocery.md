@@ -1,7 +1,7 @@
 ---
 order: 1
 exercise: 22
-title: Grocery
+title: Belanja
 module: 5
 check: strict
 vars: |
@@ -11,34 +11,23 @@ expect: |
 ---
 
 <learn>
-A **list** holds several values in order:
+Sebuah **list** menyimpan banyak nilai dalam satu variabel, dan urutannya
+dijaga.
 
 ```python
-shopping = ['milk', 'bread', 'eggs']
+warna = ['merah', 'hijau', 'biru']
 ```
 
-Square brackets, items separated by commas. To get one item out, use its
-**index** — and indexing starts at `0`, not `1`:
-
-```python
-print(shopping[0])     # milk
-print(shopping[-1])    # eggs, counting from the end
-```
-
-You can loop over a list directly, without any index:
-
-```python
-for item in shopping:
-    print(item)
-```
+Kamu bisa menelusurinya dengan `for`, dan setiap putaran mengambil satu
+elemen.
 </learn>
 
 <instructions>
-Create a list containing exactly these three items, in this order:
+Buat list berisi tepat tiga item ini, dengan urutan seperti ini:
 
 {{items}}
 
-Then print each item on its own line.
+Lalu cetak setiap item pada barisnya sendiri.
 
 ```python
 shopping = {{items}}
@@ -48,7 +37,7 @@ for item in shopping:
 </instructions>
 
 <help>
-<hint>One `print` per item. A `for` loop over the list is shorter than three separate prints.</hint>
+<hint>Buat list dengan tiga string, lalu telusuri dengan `for` dan cetak satu per satu.</hint>
 <solution>
 shopping = {{items}}
 for item in shopping:

@@ -1,7 +1,7 @@
 ---
 order: 4
 exercise: 20
-title: 99 Bottles
+title: Botol Soda
 module: 4
 check: strict
 vars: |
@@ -11,23 +11,20 @@ expect: |
 ---
 
 <learn>
-A `while` loop that counts **down** is the mirror of one that counts up:
+Loop juga bisa menghitung mundur. `range(start, 0, -1)` menghasilkan angka
+menurun.
 
 ```python
-bottles = 3
-while bottles > 0:
-    print(bottles)
-    bottles = bottles - 1
+for n in range(5, 0, -1):
+    print(n)
 ```
 
-Watch the singular: at 1 bottle the wording changes from "bottles" to
-"bottle". Small detail, but it is exactly the kind of thing a program has to
-handle explicitly.
+Angka ketiga adalah langkahnya: `-1` berarti turun satu setiap putaran.
 </learn>
 
 <instructions>
-Start with **{{start}}** bottles of pop and count down to 1, printing one line
-per count:
+Mulai dari **{{start}}** botol soda dan hitung mundur sampai 1, cetak satu
+baris per hitungan:
 
 ```output
 {{start}} bottles of pop on the wall
@@ -35,11 +32,12 @@ per count:
 1 bottle of pop on the wall
 ```
 
-Use `bottles` for the count. The last line must say **bottle**, not bottles.
+Gunakan `bottles` untuk jumlahnya. Baris terakhir harus berbunyi **bottle**,
+bukan bottles.
 </instructions>
 
 <help>
-<hint>Loop while `bottles > 0`, then decrement. Use an `if` inside for the singular form when `bottles == 1`.</hint>
+<hint>Loop mundur dari jumlah botol sampai 1. Perhatikan bentuk kata pada hitungan terakhir.</hint>
 <solution>
 bottles = {{start}}
 while bottles > 0:

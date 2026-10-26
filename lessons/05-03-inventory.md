@@ -1,7 +1,7 @@
 ---
 order: 3
 exercise: 24
-title: Inventory
+title: Isi Tas
 module: 5
 check: strict
 vars: |
@@ -13,39 +13,34 @@ expect: |
 ---
 
 <learn>
-`len()` counts how many things are in a list:
+Fungsi `len()` mengembalikan jumlah elemen dalam sebuah list.
 
 ```python
-bag = ['sword', 'shield']
-print(len(bag))      # 2
+items = ['pedang', 'peta']
+print(len(items))
 ```
 
-Two more things you will want constantly:
-
-```python
-'sword' in bag       # True  — membership test
-bag.sort()           # sorts in place, alphabetically
-sorted(bag)          # returns a new sorted list, leaves bag alone
-```
+Kalau kamu mencetak list-nya langsung, Python menampilkan tanda kurung siku
+dan tanda kutipnya.
 </learn>
 
 <instructions>
-You are carrying these four items, in this order:
+Kamu membawa empat item ini, dengan urutan seperti ini:
 
 {{items}}
 
-Print the list, then a second line with the total count.
+Cetak list-nya, lalu baris kedua berisi jumlah totalnya.
 
 ```output
 {{repr(items)}}
 Total items: {{count}}
 ```
 
-Use `len()` for the count — do not type the number yourself.
+Gunakan `len()` untuk jumlahnya — jangan tulis angkanya sendiri.
 </instructions>
 
 <help>
-<hint>Print the list first, then an f-string that calls `len()`.</hint>
+<hint>Cetak list-nya langsung, lalu cetak `len()` dari list itu di baris kedua.</hint>
 <solution>
 inventory = {{items}}
 print(inventory)
