@@ -2,7 +2,6 @@
 order: 4
 exercise: 14
 title: Fortune Ball
-xp: 20
 module: 3
 vars: |
   question = choice(['Will it rain today?', 'Should I learn Python?',

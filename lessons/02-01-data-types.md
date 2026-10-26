@@ -2,7 +2,6 @@
 order: 1
 exercise: 6
 title: Data Types
-xp: 15
 module: 2
 vars: |
   a = randint(2, 12)

@@ -2,7 +2,6 @@
 order: 5
 exercise: 10
 title: Currency
-xp: 20
 module: 2
 vars: |
   pesos = randint(100, 2000)

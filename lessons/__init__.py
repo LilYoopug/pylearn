@@ -37,7 +37,6 @@ class Level:
     order: int
     exercise: int
     title: str
-    xp: int
     module: int
     slug: str
     learn: list[Block] = field(default_factory=list)
@@ -194,7 +193,7 @@ def parse_level(path: Path) -> Level:
     meta = _parse_front(front.group(1))
     body = raw[front.end():]
 
-    for key in ("order", "title", "xp", "module"):
+    for key in ("order", "title", "module"):
         if key not in meta:
             raise ValueError(f"{path.name}: frontmatter is missing '{key}'")
 
@@ -221,7 +220,6 @@ def parse_level(path: Path) -> Level:
         order=int(meta["order"]),
         exercise=int(meta.get("exercise", meta["order"])),
         title=meta["title"],
-        xp=int(meta["xp"]),
         module=int(meta["module"]),
         slug=path.stem,
         start=meta.get("start", "# Write code below 💖\n\n"),

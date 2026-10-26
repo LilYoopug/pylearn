@@ -2,7 +2,6 @@
 order: 4
 exercise: 42
 title: Forty Two
-xp: 20
 module: 8
 vars: |
   target = 42

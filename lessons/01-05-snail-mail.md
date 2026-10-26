@@ -2,7 +2,6 @@
 order: 5
 exercise: 5
 title: Envelope
-xp: 20
 module: 1
 vars: |
   name = choice(['Ada', 'Grace', 'Alan', 'Katherine', 'Linus', 'Margaret'])

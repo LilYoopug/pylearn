@@ -8,7 +8,7 @@ confetti when it works.
 
 ```
 ┌─ pylearn ─────────────────────────────────────────────────────────┐
-│ ● pylearn   Python / Hello World   ▐████████      ▌ 80%  ⌂  ⚙    │
+│ ● pylearn   Python / First Steps / Hello World  ▐███▌ 7%  ⌂ ⚙ │
 ├───────────────────────────────┬───────────────────────────────────┤
 │ Learn                         │ script.py                         │
 │                               │                                   │
@@ -85,7 +85,6 @@ appear in the app — there is no list to edit in code.
 ---
 order: 2
 title: Temperature
-xp: 15
 module: 2
 vars: |
   temp_f = randint(20, 110)
@@ -147,13 +146,14 @@ install beyond the two packages above.
 
 ## Known limitations
 
-- **Progress is not saved.** Level states, XP and the hint counter live in
-  memory and reset when the app closes.
+- **Progress lives in one file.** Level states and hint counters are written to
+  `pylearn_progress.json` next to `pylearn.py`; delete it (or use *Setup → Reset
+  progress*) to start over.
 - **No user input at runtime.** `input()` will not work, because the code runs
   in a subprocess with no keyboard attached. Exercises are written around this.
 - **Accent colour is partial.** Textual cannot re-evaluate CSS variables at
-  runtime, so changing the accent restyles the header and XP bar rather than
-  the whole theme.
+  runtime, so changing the accent restyles the header and progress bar rather
+  than the whole theme.
 
 ## Credits
 

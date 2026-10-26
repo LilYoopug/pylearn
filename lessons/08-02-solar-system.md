@@ -2,7 +2,6 @@
 order: 2
 exercise: 40
 title: Solar System
-xp: 25
 module: 8
 vars: |
   planet = choice(['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter'])

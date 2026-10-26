@@ -2,7 +2,6 @@
 order: 1
 exercise: 39
 title: Reels
-xp: 20
 module: 8
 vars: |
   import random as _r

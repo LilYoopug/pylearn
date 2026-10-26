@@ -2,7 +2,6 @@
 order: 1
 exercise: 34
 title: Restaurants
-xp: 20
 module: 7
 vars: |
   name = choice(['Blue Door', 'Sakura', 'Corner Cafe', 'Little Italy'])

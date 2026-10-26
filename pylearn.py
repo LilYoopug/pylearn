@@ -942,8 +942,12 @@ def sprite_row(sprites: list[list[str]], height: int = 10, gap: int = 1) -> Text
 # --------------------------------------------------------------------------- #
 #  Widgets
 # --------------------------------------------------------------------------- #
-class XPBar(Static):
-    """The little progress pill in the top bar."""
+class ProgressBar(Static):
+    """Whole-course progress pill in the top bar.
+
+    It tracks the finished levels, not the current exercise, so the number
+    means the same thing on the level picker and inside a lesson.
+    """
 
     pct = 0
     accent = GREEN
@@ -951,7 +955,10 @@ class XPBar(Static):
     def render(self) -> Text:
         w = max(self.size.width, 6)
         inner = w - 2
-        fill = max(1, round(inner * self.pct / 100)) if self.pct else 2
+        # a partly filled pill at 0% would read as progress that is not there
+        fill = round(inner * self.pct / 100)
+        if self.pct and not fill:
+            fill = 1
         t = Text(no_wrap=True)
         t.append("▐", Style(color="#26314a"))
         t.append(" " * fill, Style(bgcolor=self.accent))
@@ -960,7 +967,7 @@ class XPBar(Static):
         return t
 
     def set_pct(self, pct: int) -> None:
-        self.pct = pct
+        self.pct = max(0, min(100, pct))
         self.refresh()
 
 
@@ -1155,7 +1162,6 @@ def _mix(a: str, b: str, t: float) -> str:
 class Level:
     number: int
     title: str
-    xp: int
     state: str = "locked"      # "done" | "unlocked" | "locked"
     note: str = ""
     exercise: int = 0          # global exercise number across the course
@@ -1174,7 +1180,7 @@ class Module:
 LESSON_DIR = "lessons"
 
 PROGRESS_FILE = Path(__file__).resolve().with_name("pylearn_progress.json")
-"""Where level state and XP are kept between runs."""
+"""Where level state and hint counts are kept between runs."""
 
 PROGRESS_VERSION = 1
 
@@ -1200,14 +1206,13 @@ def load_progress() -> dict:
         raw = PROGRESS_FILE.read_text(encoding="utf-8")
         data = json.loads(raw)
     except (FileNotFoundError, OSError, ValueError):
-        return {"version": PROGRESS_VERSION, "levels": {}, "xp": 0}
+        return {"version": PROGRESS_VERSION, "levels": {}}
     if not isinstance(data, dict):
-        return {"version": PROGRESS_VERSION, "levels": {}, "xp": 0}
+        return {"version": PROGRESS_VERSION, "levels": {}}
     levels = data.get("levels")
     return {
         "version": PROGRESS_VERSION,
         "levels": levels if isinstance(levels, dict) else {},
-        "xp": int(data.get("xp", 0) or 0),
     }
 
 
@@ -1254,13 +1259,7 @@ def collect_progress(app) -> dict:
                     "done": level.state == "done",
                     "failures": failures,
                 }
-    return {
-        "version": PROGRESS_VERSION,
-        "levels": levels,
-        "xp": sum(
-            lv.xp for m in app.modules for lv in m.levels if lv.state == "done"
-        ),
-    }
+    return {"version": PROGRESS_VERSION, "levels": levels}
 
 
 HINT_AFTER = 3
@@ -1294,7 +1293,6 @@ def _build_modules() -> list[Module]:
                 Level(
                     number=lesson.order,
                     title=lesson.title,
-                    xp=lesson.xp,
                     state=state,
                     note=lesson.hint,
                     exercise=lesson.exercise,
@@ -1879,7 +1877,7 @@ class LevelRow(Widget):
         put(13, lv.title, _cell_style(ink, bg, not locked))
 
         if done:
-            action, style = f"+{lv.xp} XP", _cell_style(BEACH["frond"], bg, True)
+            action, style = LEVEL_ICON["done"] + " done", _cell_style(BEACH["frond"], bg, True)
         elif locked:
             action, style = f"{LEVEL_ICON['locked']} locked", _cell_style("#6a7694", bg)
         else:
@@ -2071,6 +2069,7 @@ class PathScreen(Vertical):
         """Make `level` current: highlight its row and refresh the right pane."""
         self.selected = level
         self.app._selected = level
+        self.app._refresh_header()
         for row in self.query(LevelRow):
             row.selected = row.level is level
             row.refresh()
@@ -2107,11 +2106,11 @@ class PathScreen(Vertical):
             yield PixelButton(f"{LEVEL_ICON['locked']} Locked",
                               id="level-btn", classes="locked")
         elif done:
-            yield Static(f"Completed  ·  +{level.xp} XP earned", id="lv-note")
+            yield Static("Completed  ·  replay any time", id="lv-note")
             yield PixelButton(f"{LEVEL_ICON['done']} Replay",
                               id="level-btn", classes="ready")
         else:
-            yield Static(f"Reward  ·  +{level.xp} XP", id="lv-note")
+            yield Static("Not finished yet", id="lv-note")
             yield PixelButton(f"{LEVEL_ICON['unlocked']} Play",
                               id="level-btn", classes="ready")
 
@@ -2178,10 +2177,10 @@ class PathScreen(Vertical):
             note = "Clear the level before this one to unlock it."
             label, cls = f"{LEVEL_ICON['locked']} Locked", "locked"
         elif done:
-            note = f"Completed  ·  +{level.xp} XP earned"
+            note = "Completed  ·  replay any time"
             label, cls = f"{LEVEL_ICON['done']} Replay", "ready"
         else:
-            note = f"Reward  ·  +{level.xp} XP"
+            note = "Not finished yet"
             label, cls = f"{LEVEL_ICON['unlocked']} Play", "ready"
 
         self.query_one("#lv-note", Static).update(note)
@@ -2435,7 +2434,7 @@ class SettingsPage(Vertical):
         yield Static(self._conf_text(), id="set-conf", classes="set-row")
 
         yield Static("PROGRESS", classes="set-group")
-        yield Static("Reset progress          clear levels, XP and hints",
+        yield Static("Reset progress          clear levels and hints",
                      id="set-reset", classes="set-row")
 
         yield Static("Click a row to change it. Esc returns to the lesson.",
@@ -2699,11 +2698,15 @@ class PyLearnApp(App):
         for widget in self.query("#path"):
             widget.remove()
         self.on_path = False
+        self._selected = None
         self.query_one("#path-wrap").remove_class("-on")
         self.query_one("#path-foot").remove_class("-on")
         self.query_one("#bottom").display = False
+        self._refresh_header()
         self.on_menu = True
         self.query_one("#scene").display = True
+        self._selected = None
+        self._refresh_header()
         self.query_one("#start-btn", PixelButton).focus()
 
     def _move_selection(self, delta: int) -> None:
@@ -2736,7 +2739,7 @@ class PyLearnApp(App):
     #coin {{ width: 2; color: #f2c94c; text-style: bold; }}
     #logo {{ width: auto; color: white; text-style: bold; margin-right: 2; }}
     #crumbs {{ width: auto; color: {MUTED}; margin-right: 2; }}
-    #xpbar {{ width: 1fr; max-width: 28; min-width: 8; height: 3;
+    #progressbar {{ width: 1fr; max-width: 28; min-width: 8; height: 3;
               padding: 1 0 1 0; content-align: left middle; }}
     #pct {{ width: auto; color: {MUTED}; margin-left: 1; }}
     #top-gap {{ width: 1fr; }}
@@ -2812,7 +2815,6 @@ class PyLearnApp(App):
     #ex-title {{ text-style: bold; color: {TEXT}; height: 1; }}
     #ex-row {{ height: 1; width: auto; }}
     #ex-sub {{ color: {MUTED}; width: auto; }}
-    #xp {{ width: auto; background: {PANEL}; color: {HEADTEXT}; text-style: bold; padding: 0 1; margin-left: 2; }}
     #bottom-gap {{ width: 1fr; }}
 
     /* ───────── pixel buttons: square outline + hard bottom/right shadow ───────── */
@@ -2893,7 +2895,6 @@ class PyLearnApp(App):
     Screen.-narrow #workspace {{ width: 100%; height: 1fr; }}
     Screen.-narrow #crumbs {{ display: none; }}
     Screen.-narrow PixelButton {{ min-width: 8; padding: 0 1; margin-left: 1; }}
-    Screen.-narrow #xp {{ display: none; }}
     """
 
     # ------------------------------------------------------------------ #
@@ -2909,7 +2910,7 @@ class PyLearnApp(App):
             yield Label(
                 f"Python  /  [b {TEXT}]Hello World[/]", id="crumbs", markup=True
             )
-            yield XPBar(id="xpbar")
+            yield ProgressBar(id="progressbar")
             yield Label("0%", id="pct")
             yield Static("", id="top-gap")
             yield PixelButton("Home", id="home-btn", classes="topact")
@@ -2967,13 +2968,13 @@ class PyLearnApp(App):
                 yield Label("Setting Up", id="ex-title")
                 with Horizontal(id="ex-row"):
                     yield Label("Exercise 1 / 5", id="ex-sub")
-                    yield Label("10 XP", id="xp")
             yield Static("", id="bottom-gap")
             yield PixelButton("Back", id="back-btn")
             yield PixelButton("Next", id="next-btn")
 
     # ------------------------------------------------------------------ #
     def on_mount(self) -> None:
+        self._refresh_header()
 
         # the menu owns the screen until Start is pressed
         self.query_one("#body").display = False
@@ -3034,7 +3035,6 @@ class PyLearnApp(App):
         self.query_one("#ex-sub", Label).update(
             f"Exercise {level.exercise} · {level.number}/{len(module.levels)}"
         )
-        self.query_one("#xp", Label).update(f"{level.xp} XP")
         self._last_stdout = ""
 
     def _module_of(self, level: "Level") -> "Module":
@@ -3243,15 +3243,47 @@ class PyLearnApp(App):
             wrap.styles, "border", ("round", "#1e293b")
         ))
 
+    def _course_pct(self) -> int:
+        """Percentage of the whole course that is finished."""
+        flat = [lv for m in self.modules for lv in m.levels]
+        if not flat:
+            return 0
+        done = sum(1 for lv in flat if lv.state == "done")
+        return round(done * 100 / len(flat))
+
+    def _refresh_header(self) -> None:
+        """Keep the breadcrumb and the progress bar in agreement.
+
+        Both are derived from the same place, so the picker and the lesson can
+        never show two different numbers.
+        """
+        if self._selected is not None:
+            module = self._module_of(self._selected)
+            tail = (
+                f"Python  /  {module.title}  /  "
+                f"[b {TEXT}]{self._selected.title}[/]"
+            )
+        else:
+            tail = f"Python  /  [b {TEXT}]Level select[/]"
+        try:
+            self.query_one("#crumbs", Label).update(tail)
+        except Exception:
+            pass
+
+        pct = self._course_pct()
+        try:
+            self.query_one(ProgressBar).set_pct(pct)
+            self.query_one("#pct", Label).update(f"{pct}%")
+        except Exception:
+            pass
+
     def _complete_level(self, level: "Level", lesson) -> None:
         """Mark the level done and move the progress bar."""
         # one burst, no banner — the toast already says what happened
         celebrate(self.screen, None, shots=1, density=self.confetti_density)
         level.state = "done"
-        gained = level.xp
-        self.query_one(XPBar).set_pct(100)
-        self.query_one("#pct", Label).update("100%")
-        self.notify(f"Correct!  +{gained} XP", title="Nice work", timeout=3)
+        self._refresh_header()
+        self.notify("Correct!", title="Level complete", timeout=3)
         self.persist()
 
     sidebar_open = False
@@ -3455,6 +3487,7 @@ class PyLearnApp(App):
             for index, level in enumerate(module.levels):
                 level.state = "unlocked" if index == 0 else "locked"
         self.persist()
+        self._refresh_header()
         self.notify("Progress cleared.", title="Reset", timeout=2)
         self.close_settings()
 
@@ -3491,7 +3524,7 @@ class PyLearnApp(App):
             except Exception:
                 pass
         try:
-            bar = self.query_one(XPBar)
+            bar = self.query_one(ProgressBar)
             bar.accent = colour
             bar.refresh()
         except Exception:
@@ -3530,6 +3563,8 @@ class PyLearnApp(App):
         self.query_one("#bottom").display = False
         self.on_menu = True
         self.query_one("#scene").display = True
+        self._selected = None
+        self._refresh_header()
         self.query_one("#start-btn", PixelButton).focus()
 
     def toggle_sidebar(self) -> None:
@@ -3626,6 +3661,7 @@ class PyLearnApp(App):
             self.query_one("#path-wrap").mount(
                 PathScreen(self.modules, selected, id="path")
             )
+        self._refresh_header()
 
     def show_lesson(self) -> None:
         """Enter the editor for the selected level."""
@@ -3638,17 +3674,16 @@ class PyLearnApp(App):
         self.query_one("#path-foot").remove_class("-on")
         self.query_one("#bottom").display = True
         self.query_one("#body").display = True
+        self._refresh_header()
         editor = self.query_one("#editor", PyTextArea)
         editor.focus()
         editor.move_cursor((2, 0))
 
     def next_exercise(self) -> None:
-        """Move to the next exercise and reset the XP bar for it."""
+        """Move to the next exercise."""
         self.exercise = min(EXERCISES, self.exercise + 1)
         self._last_stdout = ""
         self.query_one("#ex-sub", Label).update(f"Exercise {self.exercise} / {EXERCISES}")
-        self.query_one(XPBar).set_pct(0)
-        self.query_one("#pct", Label).update("0%")
         wrap = self.query_one("#term-wrap")
         wrap.remove_class("-ran")
         self.query_one("#output", RichLog).clear()

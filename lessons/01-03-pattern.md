@@ -2,7 +2,6 @@
 order: 3
 exercise: 3
 title: Pattern
-xp: 15
 module: 1
 expect: |
          1

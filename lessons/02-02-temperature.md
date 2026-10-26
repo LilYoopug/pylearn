@@ -2,7 +2,6 @@
 order: 2
 exercise: 7
 title: Temperature
-xp: 15
 module: 2
 vars: |
   temp_f = randint(20, 110)

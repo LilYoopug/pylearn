@@ -2,7 +2,6 @@
 order: 5
 exercise: 32
 title: Stock Value
-xp: 25
 module: 6
 vars: |
   price = randint(20, 300)

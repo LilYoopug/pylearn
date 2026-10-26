@@ -2,7 +2,6 @@
 order: 2
 exercise: 12
 title: Grades
-xp: 15
 module: 3
 vars: |
   grade = randint(30, 100)

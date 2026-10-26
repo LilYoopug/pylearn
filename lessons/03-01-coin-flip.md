@@ -2,7 +2,6 @@
 order: 1
 exercise: 11
 title: Coin Flip
-xp: 15
 module: 3
 vars: |
   guess = choice(['Heads', 'Tails'])

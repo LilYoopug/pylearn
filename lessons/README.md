@@ -19,7 +19,6 @@ Bagian paling atas adalah metadata level, ditulis sebagai `key: value`.
 ---
 order: 3
 title: Variables
-xp: 15
 module: 1
 ---
 ```
@@ -28,7 +27,6 @@ module: 1
 |------------|-------|-------------------------------------------------|
 | `order`    | ya    | urutan level di dalam modulnya                  |
 | `title`    | ya    | judul yang tampil di path, sidebar, dan header  |
-| `xp`       | ya    | XP yang didapat saat level selesai              |
 | `module`   | ya    | nomor modul tempat level ini berada             |
 | `exercise` | tidak | nomor latihan global (default: `order`)         |
 | `expect`   | tidak | stdout yang diharapkan, boleh berisi `{{...}}`  |
@@ -105,7 +103,6 @@ ulang **setiap kali level dibuka**, jadi soalnya berganti angka atau nama.
 ---
 order: 2
 title: Temperature
-xp: 15
 module: 2
 vars: |
   temp_f = randint(20, 110)
@@ -165,7 +162,6 @@ sama.
 ---
 order: 1
 title: Hello World
-xp: 10
 module: 1
 expect: Hi
 ---

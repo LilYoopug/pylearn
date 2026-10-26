@@ -2,7 +2,6 @@
 order: 2
 exercise: 35
 title: Menu Board
-xp: 25
 module: 7
 vars: |
   item = choice(['burger', 'fries', 'shake'])

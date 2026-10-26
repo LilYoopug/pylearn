@@ -2,7 +2,6 @@
 order: 3
 exercise: 41
 title: Countdown
-xp: 20
 module: 8
 vars: |
   start = randint(3, 7)

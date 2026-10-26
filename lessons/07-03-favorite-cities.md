@@ -2,7 +2,6 @@
 order: 3
 exercise: 36
 title: Favorite Cities
-xp: 25
 module: 7
 vars: |
   cities = sample(['Tokyo', 'Lisbon', 'Cairo', 'Oslo', 'Quito', 'Perth'], 3)

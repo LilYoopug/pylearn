@@ -2,7 +2,6 @@
 order: 4
 exercise: 20
 title: 99 Bottles
-xp: 25
 module: 4
 vars: |
   start = randint(3, 6)

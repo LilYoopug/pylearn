@@ -2,7 +2,6 @@
 order: 2
 exercise: 2
 title: Hello World
-xp: 10
 module: 1
 expect: Hi
 ---

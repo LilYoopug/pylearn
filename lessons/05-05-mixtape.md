@@ -2,7 +2,6 @@
 order: 5
 exercise: 26
 title: Playlist
-xp: 25
 module: 5
 vars: |
   tracks = sample(['Blue Monday', 'Nights', 'Teardrop', 'Redbone',

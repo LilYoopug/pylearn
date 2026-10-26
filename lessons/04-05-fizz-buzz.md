@@ -2,7 +2,6 @@
 order: 5
 exercise: 21
 title: Fizz Buzz
-xp: 25
 module: 4
 vars: |
   limit = randint(5, 9)

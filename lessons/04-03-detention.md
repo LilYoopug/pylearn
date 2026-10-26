@@ -2,7 +2,6 @@
 order: 3
 exercise: 19
 title: Detention
-xp: 15
 module: 4
 vars: |
   lines = randint(3, 7)

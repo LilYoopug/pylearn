@@ -2,7 +2,6 @@
 order: 4
 exercise: 4
 title: Initials
-xp: 15
 module: 1
 expect: |
   AAAAA

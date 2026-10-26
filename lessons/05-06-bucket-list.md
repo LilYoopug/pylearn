@@ -2,7 +2,6 @@
 order: 6
 exercise: 27
 title: Bucket List
-xp: 25
 module: 5
 vars: |
   dreams = sample(['see the northern lights', 'learn to sail',

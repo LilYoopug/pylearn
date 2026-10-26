@@ -2,7 +2,6 @@
 order: 5
 exercise: 38
 title: Monster Index
-xp: 30
 module: 7
 vars: |
   mons = sample(['Bulbasaur', 'Charmander', 'Squirtle', 'Pikachu', 'Eevee'], 2)

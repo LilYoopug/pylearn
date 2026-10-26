@@ -2,7 +2,6 @@
 order: 5
 exercise: 15
 title: Ride Check
-xp: 20
 module: 3
 vars: |
   height = randint(120, 200)

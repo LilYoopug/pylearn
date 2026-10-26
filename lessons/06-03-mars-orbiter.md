@@ -2,7 +2,6 @@
 order: 3
 exercise: 30
 title: Mars Orbiter
-xp: 20
 module: 6
 vars: |
   days = randint(30, 400)

@@ -2,7 +2,6 @@
 order: 1
 exercise: 1
 title: Setting Up
-xp: 10
 module: 1
 expect: Hello, World!
 ---

@@ -2,7 +2,6 @@
 order: 6
 exercise: 33
 title: Drive-Thru
-xp: 25
 module: 6
 vars: |
   item = choice(['burger', 'fries', 'shake', 'taco'])

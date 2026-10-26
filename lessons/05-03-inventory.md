@@ -2,7 +2,6 @@
 order: 3
 exercise: 24
 title: Inventory
-xp: 20
 module: 5
 vars: |
   items = sample(['sword', 'shield', 'potion', 'rope', 'torch', 'map'], 4)

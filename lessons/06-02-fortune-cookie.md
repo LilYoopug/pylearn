@@ -2,7 +2,6 @@
 order: 2
 exercise: 29
 title: Fortune Cookie
-xp: 20
 module: 6
 vars: |
   fortunes = ['You will find what you seek.',

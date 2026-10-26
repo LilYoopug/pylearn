@@ -2,7 +2,6 @@
 order: 1
 exercise: 22
 title: Grocery
-xp: 15
 module: 5
 vars: |
   items = sample(['milk', 'bread', 'eggs', 'rice', 'apples', 'coffee'], 3)

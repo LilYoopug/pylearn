@@ -2,7 +2,6 @@
 order: 6
 exercise: 16
 title: House Sorter
-xp: 25
 module: 3
 vars: |
   score = randint(0, 100)

@@ -2,7 +2,6 @@
 order: 2
 exercise: 18
 title: Guess Number
-xp: 20
 module: 4
 vars: |
   secret = randint(1, 20)

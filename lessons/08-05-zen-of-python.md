@@ -2,7 +2,6 @@
 order: 5
 exercise: 43
 title: Zen of Python
-xp: 25
 module: 8
 vars: |
   count = 3

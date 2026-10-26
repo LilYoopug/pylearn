@@ -2,7 +2,6 @@
 order: 4
 exercise: 9
 title: Pythagorean
-xp: 20
 module: 2
 vars: |
   a = randint(3, 15)

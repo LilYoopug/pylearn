@@ -2,7 +2,6 @@
 order: 4
 exercise: 31
 title: Calculator
-xp: 25
 module: 6
 vars: |
   a = randint(4, 20)

@@ -2,7 +2,6 @@
 order: 3
 exercise: 13
 title: pH Levels
-xp: 20
 module: 3
 vars: |
   ph = randint(0, 14)

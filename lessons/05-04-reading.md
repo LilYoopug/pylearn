@@ -2,7 +2,6 @@
 order: 4
 exercise: 25
 title: Reading
-xp: 20
 module: 5
 vars: |
   books = sample(['Dune', 'Emma', 'Beloved', 'Ulysses', 'Dracula', 'Middlemarch'], 3)

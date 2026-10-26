@@ -2,7 +2,6 @@
 order: 4
 exercise: 37
 title: Bank Accounts
-xp: 30
 module: 7
 vars: |
   start = randint(100, 900)

@@ -2,7 +2,6 @@
 order: 1
 exercise: 17
 title: Enter PIN
-xp: 15
 module: 4
 vars: |
   pin = randint(1000, 9999)
