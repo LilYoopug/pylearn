@@ -1096,6 +1096,17 @@ _BUILTIN_SIGNATURES: dict[str, tuple[str, ...]] = {
 #: Names typed in a lesson constantly; offered before user symbols.
 _BUILTINS: tuple[str, ...] = tuple(_BUILTIN_SIGNATURES)
 
+#: The order a beginner meets these in. Used only to break ties, so that the
+#: first suggestion for `p` is `print` and for `r` is `range`.
+_COMMON_ORDER: dict[str, int] = {
+    name: index for index, name in enumerate((
+        "print", "input", "range", "len", "int", "str", "float", "list",
+        "dict", "sum", "min", "max", "abs", "round", "sorted", "enumerate",
+        "zip", "open", "type", "isinstance", "map", "filter", "reversed",
+        "bool", "set", "tuple", "pow", "pass", "object",
+    ))
+}
+
 _KEYWORDS: tuple[str, ...] = (
     "and", "as", "assert", "async", "await", "break", "class", "continue",
     "def", "del", "elif", "else", "except", "False", "finally", "for", "from",
@@ -1269,15 +1280,26 @@ class SymbolIndex:
     def suggest(self, prefix: str, *, limit: int = 60) -> list[Completion]:
         """Names in the file that start with `prefix`, user symbols first."""
         prefix = prefix.lower()
+        # Rank the way an editor does. `p` must offer `print` before `pow`:
+        # in a beginner course that is what the prefix almost always means.
+        # Frequency decides, then shortness, then the alphabet.
+        def rank(completion: Completion) -> tuple:
+            label = completion.label.lower()
+            priority = _COMMON_ORDER.get(label, len(_COMMON_ORDER))
+            return (label != prefix, priority, len(label), label)
+
         found = [c for name, c in self.names.items()
                  if name.lower().startswith(prefix)]
-        found.sort(key=lambda c: (c.kind == "variable", len(c.label)))
+        found.sort(key=rank)
         found += [
             Completion(b, "builtin", _builtin_detail(b), _BUILTIN_SIGNATURES[b])
             for b in _BUILTINS if b.startswith(prefix)
         ]
         found += [Completion(k, "keyword") for k in _KEYWORDS
                   if k.startswith(prefix)]
+        # builtins and keywords join the same ranking; a stable sort keeps the
+        # file's own names ahead of identical-length builtins
+        found.sort(key=rank)
         return found[:limit]
 
     def members_of(self, expr: str) -> list[Completion]:
@@ -1444,27 +1466,62 @@ class PyTextArea(TextArea):
         gutter = self.gutter_width
 
         screen = self.screen.region
-        x = self.region.x + gutter + column - offset.x
-        below_y = self.region.y + row - offset.y + 1
+        caret_x = self.region.x + gutter + column - offset.x
+        caret_y = self.region.y + row - offset.y
 
-        # chrome is the border (2) plus the scroll counter line (1)
+        # Sit beside the caret, not on top of it: the code being typed stays
+        # readable while the list is open. Only fall back to below/above when
+        # there is no room to the right.
         chrome = 3
-        space_below = max(0, screen.bottom - below_y - 1)
-        space_above = max(0, (self.region.y + row - offset.y) - screen.y - 1)
+        gap = 2
+        right_x = caret_x + gap
+        width = min(44, screen.right - right_x - 1)
+        beside = width >= 16
 
-        # prefer below the caret; flip up when there is clearly more room
-        if space_below >= 4 or space_below >= space_above:
-            available, anchor, upward = space_below, below_y, False
+        # Prefer to stay inside the editor, so the list never climbs over the
+        # lesson pane or the top bar. On a very short editor that leaves no
+        # room at all, so fall back to the whole screen — the popup is to the
+        # right of the caret either way, so the line being typed stays visible.
+        panel_top, panel_bottom = self.region.y, self.region.bottom
+        space_below = max(0, panel_bottom - (caret_y + 1))
+        space_above = max(0, caret_y - panel_top)
+        if max(space_below, space_above) < 4:
+            # never above the top bar, never over the bottom bar
+            panel_top = screen.y + 7
+            try:
+                panel_top = self.app.query_one("#topbar").region.bottom
+            except Exception:
+                pass
+            panel_bottom = screen.bottom - 4
+            space_below = max(0, panel_bottom - (caret_y + 1))
+            space_above = max(0, caret_y - panel_top)
+
+        if beside:
+            # The caret can be near the bottom of the pane while the pane has
+            # plenty of room above the line: measure from the pane edges, not
+            # from the caret, or a 3-row popup appears in a 20-row editor.
+            upward = space_above > space_below
+            if upward:
+                available = space_above
+                anchor_y = caret_y
+            else:
+                # grow upward from the pane bottom so the full height is used
+                available = max(space_below, panel_bottom - panel_top)
+                anchor_y = panel_bottom if space_below < 4 else caret_y + 1
+            x = right_x
         else:
-            available, anchor, upward = space_above, self.region.y + row - offset.y, True
+            available = space_below if space_below >= space_above else space_above
+            upward = space_above > space_below
+            anchor_y = caret_y if upward else caret_y + 1
+            width = min(44, max(18, self.size.width))
+            x = caret_x
 
         rows = max(1, min(len(menu.matches), available - chrome))
         menu.set_rows(rows)
         height = min(len(menu.visible()), rows) + chrome
 
-        width = min(44, max(18, self.size.width))
         x = max(screen.x, min(x, screen.right - width))
-        y = anchor - height if upward else anchor
+        y = anchor_y - height if upward else anchor_y
         y = max(screen.y, min(y, screen.bottom - height))
         menu.styles.offset = (x - screen.x, y - screen.y)
 
