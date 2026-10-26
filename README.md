@@ -56,49 +56,55 @@ python pylearn.py
 | `↑` `↓` | Move through the level list |
 | `Enter` | Open a level / start |
 | `Esc` | Back one screen, close a popup |
-| `Tab` / `Enter` | Expand the highlighted snippet |
-| `↑` `↓` | Move through snippet matches (while the popup is open) |
+| `Tab` / `Enter` | Insert the highlighted completion |
+| `↑` `↓` | Move through completions (while the popup is open) |
+| `ctrl+space` | Open the completion list |
 
 Everything is also clickable.
 
-## Snippets
+## IntelliSense
 
-The editor completes snippets the way VS Code does: type a short prefix, pick
-from the popup, and the body is written out with the caret in the first slot.
+The editor completes from the code you are actually writing — no language
+server, no extra dependency. Type a name and it appears in a popup under the
+caret; type a dot and it lists the members of that value.
 
 ```
-for█                ┌──────────────────────────────────┐
-                    │ ▸ for      for loop over a range │
-                    │   forenum  for loop with an index│
-                    │   forin    for loop over a sequence
-                    └──────────────────────────────────┘
+names = ['ada', 'guido']      ┌─────────────────────┐
+total = len(names)            │ ▸ ≡ append          │
+                              │   ≡ clear           │
+names.█                       │   ≡ copy            │
+                              │   ≡ count           │
+                              └─────────────────────┘
 ```
 
-Press `Tab` or `Enter` to expand, `Esc` to dismiss. The whole list:
+What it knows about:
 
-| prefix | expands to |
-|--------|-----------|
-| `for` | `for i in range(n):` |
-| `forenum` | `for i, item in enumerate(items):` |
-| `forin` | `for item in items:` |
-| `while` | `while condition:` |
-| `if` / `ife` / `elif` / `else` | the usual branches |
-| `def` / `defr` | function definition, with or without `return` |
-| `class` | class with `__init__` |
-| `try` | `try` / `except` |
-| `with` | context manager |
-| `lambda` | `lambda x: x` |
-| `listcomp` / `dictcomp` | comprehensions |
-| `print` / `input` | `print(value)` / `input(prompt)` |
-| `main` | `if __name__ == "__main__":` |
-| `import` / `from` | import statements |
+| Source | Example |
+|--------|---------|
+| Variables in the file | `total` → `int` |
+| Functions, with their signature | `greet` → `(name, punct=…)` |
+| Classes and their methods | `Dog` → `bark`, `fetch` |
+| Members of a known value | `names.` → `append`, `sort`, … |
+| Members after a literal | `"abc".` → `upper`, `split`, … |
+| Python builtins | `print`, `range`, `len`, `sum` |
+| Keywords | `for`, `while`, `import` |
 
-Snippets are indentation aware: expanding `for` on an indented line keeps the
-body inside that block.
+| Key | Action |
+|-----|--------|
+| `Tab` / `Enter` | Insert the highlighted completion |
+| `↑` `↓` | Move through the list |
+| `Esc` | Close the popup |
+| `ctrl+space` | Open the list manually |
 
-The app opens on a menu, `Start` takes you to the level map, and `Home` walks
-back up one screen at a time. `⚙ Setup` holds the accent colour, the menu
-animation toggle and the confetti density.
+The source is parsed with `ast`, so symbols are read exactly rather than
+guessed with regexes. Code that is still being typed is handled: `names.` and
+unclosed brackets are syntax errors, so the offending lines are dropped and
+the rest of the file still contributes its names — a completion list that is
+mostly right beats an empty one.
+
+Types are inferred where the value makes it obvious (`x = []` → list,
+`total = len(...)` → int). Anything else falls back to the static member table,
+because resolving a return type without running the code is not possible.
 
 ## Course
 

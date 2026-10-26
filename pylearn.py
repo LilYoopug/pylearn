@@ -9,6 +9,7 @@ Mouse: everything is clickable (works in Termux too).
 
 from __future__ import annotations
 
+import ast
 import asyncio
 import json
 import math
@@ -1034,103 +1035,305 @@ class HelpItem(Vertical):
 
 
 # --------------------------------------------------------------------------- #
-#  Snippets — the VS Code habit, inside the editor
+#  IntelliSense — completions drawn from the code you are writing
 # --------------------------------------------------------------------------- #
 #
-# Same idea as a VS Code user snippet: type a short prefix, pick it from the
-# list, and the body is written out with the caret left in the first slot.
-# `\t` marks one level of indentation relative to the line being typed, and
-# `${1:name}` is a slot whose placeholder text is selected on insertion.
+# No language server, no tree-sitter: the editor is a single script, so the
+# symbols that matter are the names this file defines — variables, functions,
+# classes, parameters — plus what Python itself provides. The source is parsed
+# with `ast` (exact, no regex guessing) and the member list for a name is read
+# off the object it refers to, falling back to a static table for the types
+# that cannot be resolved without running the code.
+
+INTEL_KINDS = {
+    "variable": "var",
+    "function": "def",
+    "class": "cls",
+    "module": "mod",
+    "keyword": "kw",
+    "builtin": "fn",
+    "method": "mth",
+    "attribute": "attr",
+    "snippet": "snip",
+}
+
+#: Members offered for a name whose type cannot be inferred statically.
+_MEMBER_TABLE: dict[str, tuple[str, ...]] = {
+    "str": ("capitalize", "casefold", "center", "count", "encode", "endswith",
+            "find", "format", "index", "isalnum", "isalpha", "isdigit",
+            "islower", "isupper", "join", "lower", "lstrip", "partition",
+            "removeprefix", "removesuffix", "replace", "rfind", "rindex",
+            "rpartition", "rsplit", "rstrip", "split", "splitlines",
+            "startswith", "strip", "swapcase", "title", "upper", "zfill"),
+    "list": ("append", "clear", "copy", "count", "extend", "index", "insert",
+             "pop", "remove", "reverse", "sort"),
+    "dict": ("clear", "copy", "fromkeys", "get", "items", "keys", "pop",
+             "popitem", "setdefault", "update", "values"),
+    "set": ("add", "clear", "copy", "difference", "discard", "intersection",
+            "issubset", "issuperset", "pop", "remove", "union", "update"),
+    "tuple": ("count", "index"),
+}
+
+#: Names typed in a lesson constantly; offered before user symbols.
+_BUILTINS: tuple[str, ...] = (
+    "abs", "all", "any", "bool", "dict", "enumerate", "filter", "float",
+    "format", "frozenset", "getattr", "hasattr", "input", "int", "isinstance",
+    "iter", "len", "list", "map", "max", "min", "object", "open", "ord",
+    "print", "range", "repr", "reversed", "round", "set", "setattr", "sorted",
+    "str", "sum", "super", "tuple", "type", "zip",
+)
+
+_KEYWORDS: tuple[str, ...] = (
+    "and", "as", "assert", "async", "await", "break", "class", "continue",
+    "def", "del", "elif", "else", "except", "False", "finally", "for", "from",
+    "global", "if", "import", "in", "is", "lambda", "None", "nonlocal", "not",
+    "or", "pass", "raise", "return", "True", "try", "while", "with", "yield",
+)
 
 
 @dataclass(frozen=True)
-class Snippet:
-    prefix: str
-    description: str
-    body: str
+class Completion:
+    """One row in the popup."""
+
+    label: str
+    kind: str
+    detail: str = ""
+
+    @property
+    def icon(self) -> str:
+        return {"var": "𝑣", "def": "ƒ", "cls": "◆", "mod": "◫", "kw": "λ",
+                "fn": "ƒ", "mth": "≡", "attr": "·"}.get(self.kind, "·")
 
 
-SNIPPETS: tuple[Snippet, ...] = (
-    Snippet("for", "for loop over a range",
-            "for ${1:i} in range(${2:n}):\n\t${3:pass}"),
-    Snippet("forenum", "for loop with an index",
-            "for ${1:i}, ${2:item} in enumerate(${3:items}):\n\t${4:pass}"),
-    Snippet("forin", "for loop over a sequence",
-            "for ${1:item} in ${2:items}:\n\t${3:pass}"),
-    Snippet("while", "while loop",
-            "while ${1:condition}:\n\t${2:pass}"),
-    Snippet("if", "if statement",
-            "if ${1:condition}:\n\t${2:pass}"),
-    Snippet("ife", "if / else",
-            "if ${1:condition}:\n\t${2:pass}\nelse:\n\t${3:pass}"),
-    Snippet("elif", "else if",
-            "elif ${1:condition}:\n\t${2:pass}"),
-    Snippet("else", "else branch",
-            "else:\n\t${1:pass}"),
-    Snippet("def", "function definition",
-            "def ${1:name}(${2:args}):\n\t${3:pass}"),
-    Snippet("defr", "function that returns",
-            "def ${1:name}(${2:args}):\n\treturn ${3:value}"),
-    Snippet("class", "class definition",
-            "class ${1:Name}:\n\tdef __init__(self${2:, args}):\n\t\t${3:pass}"),
-    Snippet("try", "try / except",
-            "try:\n\t${1:pass}\nexcept ${2:Exception} as ${3:err}:\n\t${4:pass}"),
-    Snippet("with", "context manager",
-            "with ${1:open('file')} as ${2:f}:\n\t${3:pass}"),
-    Snippet("lambda", "anonymous function",
-            "lambda ${1:x}: ${2:x}"),
-    Snippet("listcomp", "list comprehension",
-            "[${1:expr} for ${2:item} in ${3:items}]"),
-    Snippet("dictcomp", "dict comprehension",
-            "{${1:key}: ${2:value} for ${3:item} in ${4:items}}"),
-    Snippet("print", "print to the terminal",
-            "print(${1:value})"),
-    Snippet("input", "read a line of input",
-            "input(${1:prompt})"),
-    Snippet("main", "script entry point",
-            "if __name__ == \"__main__\":\n\t${1:main()}"),
-    Snippet("import", "import a module",
-            "import ${1:module}"),
-    Snippet("from", "import names from a module",
-            "from ${1:module} import ${2:name}"),
-)
+class SymbolIndex:
+    """Everything the file defines, collected from its syntax tree."""
 
-SNIPPETS_BY_PREFIX = {sn.prefix: sn for sn in SNIPPETS}
+    def __init__(self, source: str) -> None:
+        self.source = source
+        self.names: dict[str, Completion] = {}
+        self.members: dict[str, list[Completion]] = {}
+        self._tree: ast.AST | None = None
+        self._reindex()
 
-_PLACEHOLDER = re.compile(r"\$\{(\d+):([^}]*)\}|\$(\d+)")
+    def _reindex(self) -> None:
+        self.names.clear()
+        self.members.clear()
+        self._tree = self._parse(self.source)
+        if self._tree is None:
+            return
+        self._collect(self._tree)
+
+    @staticmethod
+    def _parse(source: str) -> ast.AST | None:
+        """Parse code that is usually half-written.
+
+        `names.` and an unclosed bracket are syntax errors, and that is the
+        normal state of an editor mid-keystroke. Rather than give up, the
+        offending lines are dropped and the rest of the file still yields its
+        symbols — a completion list that is 95% right beats an empty one.
+        """
+        try:
+            return ast.parse(source)
+        except SyntaxError:
+            pass
+        lines = source.split("\n")
+        for attempt in range(len(lines)):
+            keep = lines[: len(lines) - attempt - 1]
+            if not keep:
+                break
+            try:
+                return ast.parse("\n".join(keep))
+            except SyntaxError:
+                continue
+        return None
+
+    def _add(self, name: str, kind: str, detail: str = "") -> None:
+        if not name or name.startswith("_"):
+            return
+        self.names.setdefault(name, Completion(name, kind, detail))
+
+    def _collect(self, tree: ast.AST) -> None:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    for leaf in ast.walk(target):
+                        if isinstance(leaf, ast.Name):
+                            detail = _describe_value(node.value)
+                            self._add(leaf.id, "variable", detail)
+                            self._members_for(leaf.id, node.value)
+            elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
+                target = node.target
+                if isinstance(target, ast.Name):
+                    self._add(target.id, "variable",
+                              _describe_annotation(getattr(node, "annotation", None)))
+                    self._members_for(target.id, getattr(node, "value", None))
+            elif isinstance(node, (ast.For, ast.AsyncFor)):
+                for leaf in ast.walk(node.target):
+                    if isinstance(leaf, ast.Name):
+                        self._add(leaf.id, "variable", "loop")
+            elif isinstance(node, (ast.comprehension,)):
+                for leaf in ast.walk(node.target):
+                    if isinstance(leaf, ast.Name):
+                        self._add(leaf.id, "variable", "comprehension")
+            elif isinstance(node, (ast.With, ast.AsyncWith)):
+                for item in node.items:
+                    if item.optional_vars is not None:
+                        for leaf in ast.walk(item.optional_vars):
+                            if isinstance(leaf, ast.Name):
+                                self._add(leaf.id, "variable", "context")
+                                self._members_for(leaf.id, item.context_expr)
+            elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+                self._add(node.name, "def", _signature(node))
+                for arg in _all_args(node.args):
+                    self._add(arg.arg, "variable", "parameter")
+            elif isinstance(node, ast.ClassDef):
+                self._add(node.name, "cls", "class")
+                for child in node.body:
+                    if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):
+                        if not child.name.startswith("_"):
+                            self.members.setdefault(node.name, []).append(
+                                Completion(child.name, "mth", _signature(child))
+                            )
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    label = alias.asname or alias.name.split(".")[0]
+                    self._add(label, "mod", alias.name)
+            elif isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    if alias.name != "*":
+                        self._add(alias.asname or alias.name, "mod",
+                                  f"from {node.module or ''}")
+            elif isinstance(node, ast.Global | ast.Nonlocal):
+                for name in node.names:
+                    self._add(name, "variable", "global")
+
+    def _members_for(self, name: str, value: ast.AST | None) -> None:
+        """Remember the members of `name` when its type is obvious."""
+        if value is None:
+            return
+        if isinstance(value, ast.Constant):
+            members = _MEMBER_TABLE.get(type(value.value).__name__)
+        elif isinstance(value, ast.JoinedStr):
+            members = _MEMBER_TABLE["str"]
+        elif isinstance(value, ast.List | ast.ListComp):
+            members = _MEMBER_TABLE["list"]
+        elif isinstance(value, ast.Dict | ast.DictComp):
+            members = _MEMBER_TABLE["dict"]
+        elif isinstance(value, ast.Set | ast.SetComp):
+            members = _MEMBER_TABLE["set"]
+        elif isinstance(value, ast.Tuple):
+            members = _MEMBER_TABLE["tuple"]
+        elif isinstance(value, ast.Call):
+            func = value.func
+            kind = None
+            if isinstance(func, ast.Name):
+                kind = {"str": "str", "list": "list", "dict": "dict",
+                        "set": "set", "tuple": "tuple"}.get(func.id)
+            members = _MEMBER_TABLE.get(kind) if kind else None
+        else:
+            members = None
+        if members:
+            self.members[name] = [Completion(m, "mth") for m in members]
+
+    # -- queries --------------------------------------------------------
+    def suggest(self, prefix: str, *, limit: int = 60) -> list[Completion]:
+        """Names in the file that start with `prefix`, user symbols first."""
+        prefix = prefix.lower()
+        found = [c for name, c in self.names.items()
+                 if name.lower().startswith(prefix)]
+        found.sort(key=lambda c: (c.kind == "variable", len(c.label)))
+        found += [Completion(b, "builtin") for b in _BUILTINS
+                  if b.startswith(prefix)]
+        found += [Completion(k, "keyword") for k in _KEYWORDS
+                  if k.startswith(prefix)]
+        return found[:limit]
+
+    def members_of(self, expr: str) -> list[Completion]:
+        """Members of `expr`, resolved from the file or the static table."""
+        expr = expr.strip()
+        if not expr:
+            return []
+        # a class defined in this file
+        if expr in self.members:
+            return self.members[expr]
+        # dotted chains: resolve the head, then the rest is a guess
+        head = expr.split(".")[0]
+        if head in self.members and expr == head:
+            return self.members[head]
+        # `"text".upper()`, `[].append`, ...
+        if expr.startswith(("'", '"')):
+            return [Completion(m, "mth") for m in _MEMBER_TABLE["str"]]
+        if expr.startswith("["):
+            return [Completion(m, "mth") for m in _MEMBER_TABLE["list"]]
+        if expr.startswith("{"):
+            return [Completion(m, "mth") for m in _MEMBER_TABLE["dict"]]
+        # builtin constructors
+        base = {"len": "int", "range": "range", "input": "str", "str": "str",
+                "int": "int", "float": "float", "list": "list", "dict": "dict"}
+        if expr in base and base[expr] in _MEMBER_TABLE:
+            return [Completion(m, "mth") for m in _MEMBER_TABLE[base[expr]]]
+        return []
 
 
-def expand_snippet(body: str, indent: str) -> tuple[str, int]:
-    """Turn a snippet body into real text, and say where the caret belongs.
+def _all_args(args: ast.arguments) -> list[ast.arg]:
+    out = list(args.posonlyargs) + list(args.args) + list(args.kwonlyargs)
+    if args.vararg:
+        out.append(args.vararg)
+    if args.kwarg:
+        out.append(args.kwarg)
+    return out
 
-    `indent` is the leading whitespace of the line being typed, so a snippet
-    inserted inside a block stays inside that block. The caret goes to the
-    first slot, which is what makes the expansion feel like an editor rather
-    than a paste.
-    """
-    out: list[str] = []
-    caret = -1
-    pos = 0
-    for match in _PLACEHOLDER.finditer(body):
-        chunk = body[pos:match.start()]
-        out.append(chunk)
-        if caret < 0:
-            caret = sum(len(part) for part in out)
-        # ${1:name} keeps its text, $1 leaves an empty slot
-        out.append(match.group(2) or "")
-        pos = match.end()
-    out.append(body[pos:])
 
-    text = "".join(out)
-    lines = text.split("\n")
-    text = ("\n" + indent).join(lines)          # indent every line but the first
-    text = text.replace("\t", "    ")             # relative tabs become spaces
+def _signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
+    """`name(a, b=1)` — enough to recognise the call without reading the body."""
+    parts: list[str] = []
+    args = node.args
+    positional = list(args.posonlyargs) + list(args.args)
+    defaults = [None] * (len(positional) - len(args.defaults)) + list(args.defaults)
+    for arg, default in zip(positional, defaults):
+        parts.append(arg.arg if default is None else f"{arg.arg}=…")
+    if args.vararg:
+        parts.append(f"*{args.vararg.arg}")
+    for arg, default in zip(args.kwonlyargs, args.kw_defaults):
+        parts.append(arg.arg if default is None else f"{arg.arg}=…")
+    if args.kwarg:
+        parts.append(f"**{args.kwarg.arg}")
+    return f"({', '.join(parts)})"
 
-    # recompute the caret after indentation changed the offsets
-    if caret >= 0:
-        before = text[:caret]
-        caret += before.count("\n") * len(indent)
-    return text, max(0, caret)
+
+def _describe_value(value: ast.AST) -> str:
+    """A short type hint for an assignment target."""
+    if isinstance(value, ast.Constant):
+        return type(value.value).__name__
+    if isinstance(value, ast.JoinedStr):
+        return "str"
+    if isinstance(value, ast.List | ast.ListComp):
+        return "list"
+    if isinstance(value, ast.Dict | ast.DictComp):
+        return "dict"
+    if isinstance(value, ast.Set | ast.SetComp):
+        return "set"
+    if isinstance(value, ast.Tuple):
+        return "tuple"
+    if isinstance(value, ast.Call):
+        func = value.func
+        if isinstance(func, ast.Name):
+            return func.id
+        if isinstance(func, ast.Attribute):
+            return func.attr
+    if isinstance(value, ast.BinOp):
+        return _describe_value(value.left)
+    return ""
+
+
+def _describe_annotation(node: ast.AST | None) -> str:
+    if node is None:
+        return ""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    return ""
 
 class PyTextArea(TextArea):
     """TextArea coloured by Pygments instead of tree-sitter.
@@ -1144,23 +1347,41 @@ class PyTextArea(TextArea):
     def __init__(self, text: str, **kwargs) -> None:
         super().__init__(text, language=None, **kwargs)
         self._line_cache.clear()
-        self._menu: "SnippetMenu | None" = None
+        self._menu: "CompletionMenu | None" = None
+        self._index = SymbolIndex(text)
         self._word = ""
+        self._prefix = ""          # the expression the popup is describing
+        self._attribute = False    # True while completing after a dot
 
-    # -- completion -----------------------------------------------------
+    # -- IntelliSense ---------------------------------------------------
     @property
-    def menu(self) -> "SnippetMenu":
+    def menu(self) -> "CompletionMenu":
         """The popup, mounted once on the screen the first time it is needed."""
         if self._menu is None:
-            self._menu = SnippetMenu(id="snippet-menu")
+            self._menu = CompletionMenu(id="completion-menu")
             self.screen.mount(self._menu)
         return self._menu
 
-    def _word_before_cursor(self) -> str:
+    def reindex(self) -> None:
+        """Re-read the file's symbols. Called whenever the text settles."""
+        self._index = SymbolIndex(self.text)
+
+    def _completion_context(self) -> tuple[str, str]:
+        """Split the text before the caret into (expression, partial word).
+
+        `items.ap` -> ("items", "ap")   so members of `items` are offered.
+        `pri`      -> ("", "pri")       so the file's names are offered.
+        """
         row, column = self.cursor_location
         line = self.document.get_line(row)[:column]
-        match = re.search(r"[A-Za-z_][A-Za-z0-9_]*$", line)
-        return match.group(0) if match else ""
+        match = re.search(r"[A-Za-z0-9_]*$", line)
+        partial = match.group(0) if match else ""
+        before = line[: match.start()] if match else line
+        if before.endswith("."):
+            # `items.ap` -> ("items", "ap"); `items.` -> ("items", "")
+            head = re.search(r"[A-Za-z_][A-Za-z0-9_.]*$", before[:-1])
+            return (head.group(0) if head else ""), partial
+        return "", partial
 
     def _place_menu(self) -> None:
         """Park the popup just under the caret, clamped to the editor."""
@@ -1170,38 +1391,47 @@ class PyTextArea(TextArea):
         gutter = self.gutter_width
         x = self.region.x + gutter + column - offset.x
         y = self.region.y + row - offset.y + 1
-        # keep it inside the editor so it never floats over the terminal
-        width = min(46, self.size.width)
+        width = min(48, self.size.width)
         height = len(menu.matches) + 2
         x = max(self.region.x, min(x, self.region.right - width))
         y = max(self.region.y, min(y, self.region.bottom - height))
         menu.styles.offset = (x - self.screen.region.x, y - self.screen.region.y)
 
-    def refresh_completions(self) -> None:
-        word = self._word_before_cursor()
-        self._word = word
-        if not word:
-            self.menu.hide()
-            return
-        matches = [sn for sn in SNIPPETS if sn.prefix.startswith(word)]
-        if not matches or (len(matches) == 1 and matches[0].prefix == word):
-            # an exact prefix is already the snippet the user meant
+    def refresh_completions(self, *, force: bool = False) -> None:
+        """Decide what the popup should show for the caret's position."""
+        # Re-read the source here rather than relying on the keystroke hook:
+        # the index must reflect the document as it is *now*, including text
+        # set programmatically or pasted in one go.
+        if self._index.source != self.text:
+            self.reindex()
+        expr, partial = self._completion_context()
+        self._prefix, self._word = expr, partial
+        self._attribute = bool(expr)
+
+        if expr:
+            matches = self._index.members_of(expr)
+            if partial:
+                matches = [c for c in matches if c.label.startswith(partial)]
+        else:
+            if not partial and not force:
+                self.menu.hide()
+                return
+            matches = self._index.suggest(partial)
+
+        # a single exact match is not worth a popup
+        if not matches or (len(matches) == 1 and matches[0].label == partial):
             self.menu.hide()
             return
         self.menu.show(matches, 0)
         self._place_menu()
 
-    def apply_snippet(self) -> None:
-        snippet = self.menu.current()
-        if snippet is None:
+    def apply_completion(self) -> None:
+        completion = self.menu.current()
+        if completion is None:
             return
         row, column = self.cursor_location
-        line = self.document.get_line(row)
-        indent = line[: len(line) - len(line.lstrip())]
-        body, caret = expand_snippet(snippet.body, indent)
         self.delete((row, column - len(self._word)), (row, column))
-        self.insert(body)
-        self.move_cursor((row, column - len(self._word) + caret))
+        self.insert(completion.label)
         self.menu.hide()
 
     def move_suggestion(self, delta: int) -> None:
@@ -1227,19 +1457,30 @@ class PyTextArea(TextArea):
             if key in ("tab", "enter"):
                 event.stop()
                 event.prevent_default()
-                self.apply_snippet()
+                self.apply_completion()
                 return
             if key == "escape":
                 event.stop()
                 event.prevent_default()
                 menu.hide()
                 return
+        if event.key == "ctrl+space":
+            event.stop()
+            event.prevent_default()
+            self.reindex()
+            self.refresh_completions(force=True)
+            return
         await super()._on_key(event)
+        self.reindex()
         self.refresh_completions()
 
     def on_blur(self) -> None:
         if self._menu is not None:
             self._menu.hide()
+
+    def on_text_area_changed(self, event: TextArea.Changed) -> None:
+        if event.text_area is self:
+            self.reindex()
 
     def _build_highlight_map(self) -> None:
         self._line_cache.clear()
@@ -1286,14 +1527,14 @@ def _token_role(ttype) -> str:
     return ""
 
 
-class SnippetMenu(Static):
+class CompletionMenu(Static):
     """A VS Code style completion popup: a small list under the caret."""
 
     DEFAULT_CSS = """
-    SnippetMenu {
+    CompletionMenu {
         layer: overlay;
         width: auto;
-        max-width: 46;
+        max-width: 52;
         height: auto;
         max-height: 11;
         background: #1b2436;
@@ -1305,10 +1546,10 @@ class SnippetMenu(Static):
 
     def __init__(self, **kwargs) -> None:
         super().__init__("", **kwargs)
-        self.matches: list[Snippet] = []
+        self.matches: list[Completion] = []
         self.index = 0
 
-    def show(self, matches: list[Snippet], index: int = 0) -> None:
+    def show(self, matches: list[Completion], index: int = 0) -> None:
         self.matches = matches
         self.index = max(0, min(index, len(matches) - 1))
         self.display = bool(matches)
@@ -1322,25 +1563,33 @@ class SnippetMenu(Static):
     def open(self) -> bool:
         return bool(self.matches)
 
-    def current(self) -> "Snippet | None":
+    def current(self) -> "Completion | None":
         return self.matches[self.index] if self.matches else None
 
     def render(self) -> Text:
         text = Text(no_wrap=True)
-        for row, snippet in enumerate(self.matches):
+        width = max((len(c.label) for c in self.matches), default=8)
+        for row, completion in enumerate(self.matches):
             selected = row == self.index
             if selected:
                 text.append("▸ ", Style(color=GREEN, bold=True))
             else:
                 text.append("  ", Style())
             text.append(
-                f"{snippet.prefix:<10}",
+                f"{completion.icon} ",
+                Style(color=GREEN if selected else MUTED),
+            )
+            text.append(
+                f"{completion.label:<{width}}",
                 Style(color=GREEN if selected else TEXT, bold=selected),
             )
-            text.append(snippet.description, Style(color=MUTED))
+            if completion.detail:
+                text.append("  ", Style())
+                text.append(completion.detail, Style(color=MUTED))
             if row < len(self.matches) - 1:
                 text.append("\n")
         return text
+
 
 class PixelButton(Button):
     """Square button with a hard 'shadow' on the bottom/right edge."""
@@ -2712,19 +2961,14 @@ class SettingsPage(Vertical):
         yield Static("Reset progress          clear levels and hints",
                      id="set-reset", classes="set-row")
 
-        yield Static("SNIPPETS", classes="set-group")
-        # three columns: the list is long and the page is a single scroll
-        for start in range(0, len(SNIPPETS), 3):
-            with Horizontal(classes="set-row-group"):
-                for snippet in SNIPPETS[start:start + 3]:
-                    yield Static(
-                        f"{snippet.prefix:<9} {snippet.description}",
-                        classes="set-chip",
-                    )
-        yield Static(
-            "Type a prefix in the editor, then Tab or Enter to expand.",
-            id="set-snip-hint",
-        )
+        yield Static("INTELLISENSE", classes="set-group")
+        for label, text in (
+            ("Names", "variables, functions and classes in your file"),
+            ("Members", "type `items.` to list methods of that value"),
+            ("Builtins", "print, range, len, sum and the rest of Python"),
+            ("Keys", "Tab or Enter inserts, Esc closes, ctrl+space opens"),
+        ):
+            yield Static(f"{label:<10} {text}", classes="set-row")
         yield Static("Click a row to change it. Esc returns to the lesson.",
                      id="set-hint")
 
@@ -3319,6 +3563,7 @@ class PyLearnApp(App):
         editor = self.query_one("#editor", PyTextArea)
         editor.text = lesson.start
         editor.move_cursor((max(0, len(lesson.start.splitlines()) - 1), 0))
+        editor.reindex()
         if editor._menu is not None:
             editor._menu.hide()
         self.query_one("#ex-title", Label).update(
