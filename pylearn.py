@@ -845,9 +845,6 @@ SAND = "#f6e6bd"         # beach sand: what the Start button sits on
 
 STARTER_CODE = "# Write code below 💖\n\n"
 
-EXERCISES = 5
-"""How many exercises the lesson has; the bottom bar counts against this."""
-
 # --------------------------------------------------------------------------- #
 #  Tiny pixel-art sprites (rendered with half blocks, 2 pixels per text row)
 # --------------------------------------------------------------------------- #
@@ -1247,6 +1244,23 @@ def apply_progress(modules: list, data: dict) -> None:
             previous_done = level.state == "done"
 
 
+def unlock_next(modules: list, done_level) -> None:
+    """Open the level that follows `done_level` in course order.
+
+    States were only ever derived at load time, so finishing a level left the
+    next one locked until the app was restarted.
+    """
+    flat = [lv for module in modules for lv in module.levels]
+    try:
+        index = flat.index(done_level)
+    except ValueError:
+        return
+    if index + 1 < len(flat):
+        nxt = flat[index + 1]
+        if nxt.state == "locked":
+            nxt.state = "unlocked"
+
+
 def collect_progress(app) -> dict:
     """Build the save payload from the live app state."""
     levels = {}
@@ -1278,17 +1292,12 @@ def _build_modules() -> list[Module]:
     from lessons import load_course
 
     modules: list[Module] = []
-    first_open = True
     for source in load_course(LESSON_DIR):
         levels = []
-        for index, lesson in enumerate(source.levels):
-            if index < 1:
-                state = "done"
-            elif first_open:
-                state = "unlocked"
-                first_open = False
-            else:
-                state = "locked"
+        for lesson in source.levels:
+            # provisional; apply_progress() derives the real state from the
+            # save file, and the first level is open because nothing precedes it
+            state = "locked"
             levels.append(
                 Level(
                     number=lesson.order,
@@ -2639,8 +2648,6 @@ class PyLearnApp(App):
         """Write the current state to disk. Cheap; called after each change."""
         save_progress(collect_progress(self))
 
-    exercise = 1
-
     on_menu = True
     """The app opens on the menu; Start swaps it for the course path."""
 
@@ -2729,6 +2736,11 @@ class PyLearnApp(App):
     Screen {{ background: {BG}; color: {TEXT}; layers: base sidebar confetti; }}
     * {{ scrollbar-size-vertical: 1; scrollbar-color: {LINE}; scrollbar-color-hover: {BTN_EDGE};
          scrollbar-background: {BG}; scrollbar-background-hover: {BG}; scrollbar-corner-color: {BG}; }}
+
+    /* Toasts default to the bottom-right corner, which is exactly where Back
+       and Next live: for the three seconds a toast is up it swallowed the
+       click. Move them up beside the top bar instead. */
+    ToastRack {{ margin-bottom: 5; }}
 
     /* ───────── top bar ───────── */
     #topbar {{ height: 6; background: {BG}; border-bottom: solid {LINE}; padding: 1 1 0 1; }}
@@ -3282,6 +3294,7 @@ class PyLearnApp(App):
         # one burst, no banner — the toast already says what happened
         celebrate(self.screen, None, shots=1, density=self.confetti_density)
         level.state = "done"
+        unlock_next(self.modules, level)
         self._refresh_header()
         self.notify("Correct!", title="Level complete", timeout=3)
         self.persist()
@@ -3535,10 +3548,11 @@ class PyLearnApp(App):
             pass
 
     def go_home(self) -> None:
-        """Home means the level picker, not the splash screen.
+        """Go up one screen: lesson -> level picker -> beach menu.
 
-        From the lesson this reopens the path; from the path it returns to the
-        beach menu, so the button never does nothing.
+        It used to jump two levels at once from the lesson, so pressing Home
+        inside a level dropped you straight onto the splash screen and the
+        picker was never reachable except through Esc.
         """
         if self.settings_open:
             self.close_settings()
@@ -3553,19 +3567,19 @@ class PyLearnApp(App):
             return
 
         if self.on_path:
-            # already on the picker -> back to the beach menu
+            # on the picker -> back to the beach menu
             for widget in self.query("#path"):
                 widget.remove()
             self.on_path = False
             self.query_one("#path-wrap").remove_class("-on")
             self.query_one("#path-foot").remove_class("-on")
-        self.query_one("#body").display = False
-        self.query_one("#bottom").display = False
-        self.on_menu = True
-        self.query_one("#scene").display = True
-        self._selected = None
-        self._refresh_header()
-        self.query_one("#start-btn", PixelButton).focus()
+            self.query_one("#body").display = False
+            self.query_one("#bottom").display = False
+            self.on_menu = True
+            self.query_one("#scene").display = True
+            self._selected = None
+            self._refresh_header()
+            self.query_one("#start-btn", PixelButton).focus()
 
     def toggle_sidebar(self) -> None:
         """Open or close the level list from the footer's ≣ button."""
@@ -3679,18 +3693,48 @@ class PyLearnApp(App):
         editor.focus()
         editor.move_cursor((2, 0))
 
-    def next_exercise(self) -> None:
-        """Move to the next exercise."""
-        self.exercise = min(EXERCISES, self.exercise + 1)
-        self._last_stdout = ""
-        self.query_one("#ex-sub", Label).update(f"Exercise {self.exercise} / {EXERCISES}")
-        wrap = self.query_one("#term-wrap")
-        wrap.remove_class("-ran")
+    def _flat_levels(self) -> list["Level"]:
+        """Every level in course order, module by module."""
+        return [lv for module in self.modules for lv in module.levels]
+
+    def step_level(self, delta: int) -> None:
+        """Move `delta` levels forward or back through the course.
+
+        Back and Next used to drive a leftover per-module exercise counter
+        that nothing else read, so they changed a label and nothing else.
+        They now walk the course itself.
+        """
+        if self._selected is None:
+            return
+        flat = self._flat_levels()
+        index = next(
+            (i for i, lv in enumerate(flat) if lv is self._selected), None
+        )
+        if index is None:
+            return
+        target = index + delta
+        if target < 0:
+            # nothing before the first level: the list is the sensible place
+            self.notify("First level — back to the level list.", timeout=2)
+            self.show_path()
+            return
+        if target >= len(flat):
+            self.notify("Last level of the course.", title="Done", timeout=2)
+            return
+        nxt = flat[target]
+        if nxt.state == "locked":
+            self.notify(
+                "Finish this level to unlock the next one.",
+                title="Locked", severity="warning", timeout=3,
+            )
+            return
+        self._selected = nxt
+        self._load_level(nxt)
+        self._refresh_header()
+        # a fresh level means a fresh terminal
+        self.query_one("#term-wrap").remove_class("-ran")
         self.query_one("#output", RichLog).clear()
-        self.query_one("#editor", PyTextArea).text = STARTER_CODE
-        self.query_one("#editor", PyTextArea).move_cursor((2, 0))
-        self.notify(f"Exercise {self.exercise} of {EXERCISES}.",
-                    title="Next", timeout=2)
+        self.query_one("#editor", PyTextArea).focus()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         match event.button.id:
@@ -3699,11 +3743,11 @@ class PyLearnApp(App):
             case "submit-btn":
                 self.action_submit_answer()
             case "next-btn":
-                self.next_exercise()
+                self.step_level(1)
             case "level-btn":
                 self.show_lesson()
             case "back-btn":
-                self.notify("This is the first exercise.", timeout=2)
+                self.step_level(-1)
             case "more-btn":
                 self.toggle_more()
             case "menu-btn":
