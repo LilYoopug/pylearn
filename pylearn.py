@@ -4231,6 +4231,11 @@ class PyLearnApp(App):
 
     _last_stdout = ""
     _last_run_code: "str | None" = None
+    _last_verdict: tuple = ("", 0.0)
+    """(code, time) of the last judged submit, to swallow a double-tap."""
+
+    _judge_lock: "asyncio.Lock | None" = None
+    """Created on first use; serialises submissions."""
 
     async def _run_code(self, code: str) -> tuple[str, str, int]:
         """Run `code` in a subprocess; return (stdout, stderr, returncode)."""
@@ -4270,6 +4275,12 @@ class PyLearnApp(App):
             return False, f"The program failed: {first}"
         return True, ""
 
+    @property
+    def judge_lock(self) -> "asyncio.Lock":
+        if self._judge_lock is None:
+            self._judge_lock = asyncio.Lock()
+        return self._judge_lock
+
     def action_submit_answer(self) -> None:
         """Judge the answer, then react to it.
 
@@ -4286,7 +4297,29 @@ class PyLearnApp(App):
         elif lesson is None:
             self.notify("Belum ada pelajaran yang dimuat.", severity="warning", timeout=3)
         else:
-            self.run_worker(self._judge(level, lesson), exclusive=True)
+            # NOT exclusive: cancelling a running check would lose that
+            # submit entirely (the counter never moves). A repeat press on
+            # the *same* code is ignored, so a double-tap still counts once.
+            self.run_worker(self._judge_serial(level, lesson), exclusive=False,
+                            group="judge")
+
+    async def _judge_serial(self, level, lesson) -> None:
+        """One submit at a time, in order.
+
+        A quick double-tap used to cancel the first check (losing that
+        failure) or count it twice, depending on the worker mode. Here the
+        queue is explicit: each submit waits its turn, and a submit for the
+        same code that is still pending is dropped.
+        """
+        async with self.judge_lock:
+            fingerprint = self.query_one("#editor", PyTextArea).text
+            now = time.monotonic()
+            last_code, last_at = self._last_verdict
+            if fingerprint == last_code and now - last_at < 0.6:
+                # the same code, twice in a blink: one press, not two
+                return
+            await self._judge(level, lesson)
+            self._last_verdict = (fingerprint, time.monotonic())
 
     async def _judge(self, level, lesson) -> None:
         """Run the level's check, then react to the verdict."""
@@ -4317,12 +4350,19 @@ class PyLearnApp(App):
         toast cannot do; the toast is the glance-level signal. No particle
         effect: a wrong answer should not look like a celebration.
         """
-        log = self.query_one("#output", RichLog)
-        wrap = self.query_one("#term-wrap")
-        wrap.add_class("-ran")
-        log.write(Text(f"✗ {hint}", style=ERROR))
+        try:
+            log = self.query_one("#output", RichLog)
+            wrap = self.query_one("#term-wrap")
+            wrap.add_class("-ran")
+            log.write(Text(f"✗ {hint}", style=ERROR))
+        except Exception:
+            # the toast below still reports the verdict
+            pass
         self.notify(hint, title="✗ belum tepat", severity="warning", timeout=4)
-        self._flash_terminal()
+        try:
+            self._flash_terminal()
+        except Exception:
+            pass
 
     def _flash_terminal(self) -> None:
         """Flash the Terminal border red once, then restore it."""
