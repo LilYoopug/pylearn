@@ -37,7 +37,7 @@ You are carrying these four items, in this order:
 Print the list, then a second line with the total count.
 
 ```output
-{{items}}
+{{repr(items)}}
 Total items: {{count}}
 ```
 

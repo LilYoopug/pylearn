@@ -1329,6 +1329,53 @@ class SymbolIndex:
         return []
 
 
+def describe_mismatch(expected: str, actual: str) -> str:
+    """Explain where the answer differs, in a way that can be acted on.
+
+    `Expected '1\n     2 3', got '1\n2 3'` is technically true and useless:
+    the difference is invisible whitespace. This lines the two up and marks the
+    exact column, so "my spaces are wrong" becomes obvious at a glance.
+    """
+    want = expected.splitlines()
+    got = actual.splitlines()
+    if not actual:
+        return "Nothing was printed."
+    if want == got:
+        return "The output matches, but something else failed."
+
+    lines: list[str] = []
+    if len(want) != len(got):
+        lines.append(f"Expected {len(want)} line(s), got {len(got)}.")
+
+    for index in range(max(len(want), len(got))):
+        left = want[index] if index < len(want) else None
+        right = got[index] if index < len(got) else None
+        if left == right:
+            continue
+        number = index + 1
+        if left is None:
+            lines.append(f"  line {number}: extra line {right!r}")
+            continue
+        if right is None:
+            lines.append(f"  line {number}: missing line {left!r}")
+            continue
+        # how far in the two agree, then quote the first column that differs
+        column = 0
+        while column < min(len(left), len(right)) and left[column] == right[column]:
+            column += 1
+        lines.append(f"  line {number}: expected {left!r}")
+        lines.append(f"  {' ' * len(str(number))}  got      {right!r}")
+        if column < len(left) and left[column] == " ":
+            lines.append(f"  column {column + 1}: a space is missing here")
+        elif column < len(right) and right[column] == " ":
+            lines.append(f"  column {column + 1}: this space should not be here")
+        else:
+            lines.append(f"  they first differ at column {column + 1}")
+        break
+
+    return "\n".join(lines[:6])
+
+
 def _builtin_detail(name: str) -> str:
     params = _BUILTIN_SIGNATURES.get(name, ())
     return f"({', '.join(params)})" if params else ""
@@ -4083,7 +4130,7 @@ class PyLearnApp(App):
         actual = out.strip()
 
         if expect and actual != expect:
-            return False, f"Expected {expect!r}, got {actual!r}."
+            return False, describe_mismatch(expect, actual)
         if not expect and not actual:
             return False, "Run it first — nothing was printed."
 

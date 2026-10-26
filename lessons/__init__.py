@@ -137,8 +137,11 @@ def _blocks(body: str) -> list[Block]:
     prose or list items.
     """
     blocks: list[Block] = []
-    body = body.strip()
-    if not body:
+    # Only the outer newlines may go: `body.strip()` would also eat the
+    # indentation that carries meaning inside an ```output block, which is how
+    # a pattern like "   2 3" keeps its leading spaces.
+    body = body.strip("\n")
+    if not body.strip():
         return blocks
 
     parts: list[tuple[str, str, str]] = []
@@ -160,9 +163,15 @@ def _blocks(body: str) -> list[Block]:
             blocks.append(Block("sprites", payload.strip()))
             continue
         if kind == "code":
+            # The fence's contents are indented to wherever the ``` sits.
+            # Remove that common margin only — the spacing inside the sample
+            # is the whole point of an output block.
+            lines = payload.rstrip("\n").split("\n")
+            margin = min((len(l) - len(l.lstrip()) for l in lines if l.strip()),
+                         default=0)
+            text = "\n".join(l[margin:] for l in lines)
             blocks.append(
-                Block("out" if lang == "output" else "code",
-                      payload.rstrip("\n"), lang)
+                Block("out" if lang == "output" else "code", text, lang)
             )
             continue
         for chunk in re.split(r"\n\s*\n", payload):
